@@ -77,10 +77,10 @@ final public class TaskManager {
     
     public func solve<T: Task>(task: T, then completionBlock: @escaping (T.Result) -> Void) {
         let completionHandler = ManagedTask.CompletionHandler { (result) in
-            guard let result = result as? T.Result else {
-                fatalError()
+            guard let finalResult = result as? T.Result else {
+                fatalError("The result type does not match the expected Type (\(T.Result.self))")
             }
-            completionBlock(result)
+            completionBlock(finalResult)
         }
         
         let managedTask = addIfNeeded(task: task)

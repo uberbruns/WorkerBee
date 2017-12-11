@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import Worker
+@testable import Worker
 
 
 class TestResults {
@@ -41,9 +41,9 @@ class WorkerA: Worker<TaskA> {
     }
     
     override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             TestResults.shared.results.append("A")
-            report(.done(nil))
+            report(.done("A"))
         }
     }
 }

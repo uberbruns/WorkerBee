@@ -11,9 +11,23 @@ import XCTest
 @testable import Worker
 
 class WorkerTests: XCTestCase {
-    func testExample() {
+    func testWithNoDependencies() {
         let exp = expectation(description: "Solve tasks")
+        TestResults.shared.results.removeAll()
         
+        TaskA().solve { (result) in
+            print(result)
+            XCTAssertEqual(TestResults.shared.results, ["A"])
+            exp.fulfill()
+        }
+        
+        waitForExpectations(timeout: 4, handler: nil)
+    }
+
+    func testMixSuccessorsAndPrecessors() {
+        let exp = expectation(description: "Solve tasks")
+        TestResults.shared.results.removeAll()
+
         MainTask().solve { (result) in
             XCTAssertEqual(TestResults.shared.results, ["A", "B", "C", "Main", "Exit"])
             exp.fulfill()
@@ -23,6 +37,7 @@ class WorkerTests: XCTestCase {
     }
     
     static var allTests = [
-        ("testExample", testExample),
+        ("testMixSuccessorsAndPrecessors", testMixSuccessorsAndPrecessors),
+        ("testWithNoDependencies", testWithNoDependencies),
     ]
 }

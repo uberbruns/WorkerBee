@@ -9,7 +9,7 @@
 import Foundation
 
 public enum Report {
-    case done(Any?)
+    case done(Any)
     case retry
     case internalError
 }
@@ -63,16 +63,16 @@ open class Worker<T: Task>: AnyWorker {
     
     
     open func main(results: [Dependency: Any?], report: @escaping (Report) -> Void) {
-        report(.done(nil))
+        report(.done(Void()))
     }
     
     
     open func finalize(report: @escaping (Report) -> Void) {
-        report(.done(nil))
+        report(.done(Void()))
     }
     
     
     open func cancel(report: @escaping (Report) -> Void) {
-        report(.done(nil))
+        report(.done(Void()))
     }
 }
