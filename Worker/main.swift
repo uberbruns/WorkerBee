@@ -60,10 +60,10 @@ class WorkerA: Worker<TaskA> {
         super.init(task: task)
     }
     
-    override func main(results: [Dependency : Any], report: @escaping (Report) -> Void) {
+    override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             print("A", Array(results.values))
-            report(.done("A"))
+            report(.done(nil))
         }
     }
 }
@@ -95,7 +95,7 @@ class WorkerB: Worker<TaskB> {
         add(dependency: TaskC(), as: .successor)
     }
     
-    override func main(results: [Dependency : Any], report: @escaping (Report) -> Void) {
+    override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             print("B", Array(results.values))
             report(.done("B"))
@@ -128,7 +128,7 @@ class WorkerC: Worker<TaskC> {
         super.init(task: task)
     }
     
-    override func main(results: [Dependency : Any], report: @escaping (Report) -> Void) {
+    override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             print("C", Array(results.values))
             report(.done("C"))
@@ -159,7 +159,8 @@ class MainWorker: Worker<MainTask> {
         add(dependency: ExitTask(), as: .successor)
     }
     
-    override func main(results: [Dependency : Any], report: @escaping (Report) -> Void) {
+    
+    override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
         report(.done("Main"))
     }
 }
@@ -185,7 +186,7 @@ class ExitWorker: Worker<ExitTask> {
         super.init(task: task)
     }
     
-    override func main(results: [Dependency : Any], report: @escaping (Report) -> Void) {
+    override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             report(.done("EXIT"))
             exit(0)
