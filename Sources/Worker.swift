@@ -23,7 +23,7 @@ public protocol AnyWorker: class {
 }
 
 
-public class Worker<T: Task>: AnyWorker {
+open class Worker<T: Task>: AnyWorker {
     
     public class var parallelWorkers: Int { return 1 }
     

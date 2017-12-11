@@ -1,40 +1,20 @@
 //
-//  main.swift
+//  WorkerTestClasses.swift
 //  Worker
 //
-//  Created by Karsten Bruns on 08.12.17.
-//  Copyright © 2017 Karsten Bruns. All rights reserved.
+//  Created by Karsten Bruns on 11.12.17.
+//  Copyright © 2017 Worker. All rights reserved.
 //
 
-
-/*
- Use Cases:
- Bluetooth-Manager: Muss initiert und nach allen subtasks deinitiert werden
-    - Mindest-Lebenszeit
-    - Muss die Anzahl der Bluetooth-Verbindungen (subtasks) bestimmen
- 
- Bluetooth-Verbindung: Muss initiert und nach allen subtasks deinitiert werden
-     - Mindest-Lebenszeit
-     - Muss die paralellen Anfragen auf 1 reduzieren
- 
- Suchanfrage an Webserver: Muss gecancelt werden können, wenn Suchbegriffe sich ändert und Anfragen noch geplant sind
- 
- Authentifizierung mit Webserver:
-    - Session muss aufgebaut werden, bevor request API-Anfrage wird
- 
- API-Anfrage:
-    - API-Anfragen müssen wiederholt werden können, wenn Authentifizierung invalide ist
- 
- 
-
- */
-
 import Foundation
+import Worker
 
 
-
-
-
+class TestResults {
+    static let shared = TestResults()
+    var results = [String]()
+    private init() { }
+}
 
 
 struct TaskA: Task {
@@ -43,11 +23,11 @@ struct TaskA: Task {
     
     let name = "A"
     let hashValue: Int
-
+    
     init() {
         self.hashValue = name.hashValue
     }
-
+    
     func createWorker() -> AnyWorker {
         return WorkerA(task: self)
     }
@@ -62,7 +42,7 @@ class WorkerA: Worker<TaskA> {
     
     override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            print("A", Array(results.values))
+            TestResults.shared.results.append("A")
             report(.done(nil))
         }
     }
@@ -97,7 +77,7 @@ class WorkerB: Worker<TaskB> {
     
     override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            print("B", Array(results.values))
+            TestResults.shared.results.append("B")
             report(.done("B"))
         }
     }
@@ -130,7 +110,7 @@ class WorkerC: Worker<TaskC> {
     
     override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            print("C", Array(results.values))
+            TestResults.shared.results.append("C")
             report(.done("C"))
         }
     }
@@ -161,6 +141,7 @@ class MainWorker: Worker<MainTask> {
     
     
     override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
+        TestResults.shared.results.append("Main")
         report(.done("Main"))
     }
 }
@@ -169,11 +150,11 @@ class MainWorker: Worker<MainTask> {
 struct ExitTask: Task {
     
     typealias Result = String
-
+    
     let name = "Exit"
     let hashValue = ExitTask.typeHash
     private static let typeHash = Int(arc4random())
-
+    
     func createWorker() -> AnyWorker {
         return ExitWorker(task: self)
     }
@@ -188,22 +169,8 @@ class ExitWorker: Worker<ExitTask> {
     
     override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            report(.done("EXIT"))
-            exit(0)
+            TestResults.shared.results.append("Exit")
+            report(.done("Exit"))
         }
     }
 }
-
-
-MainTask().solve { (result) in
-    print("End")
-}
-
-
-DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-    print("Error")
-    exit(1)
-}
-dispatchMain()
-
-

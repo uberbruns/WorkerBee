@@ -15,7 +15,7 @@ final public class TaskManager {
     // MARK: Properties
 
     public static let shared = TaskManager()
-    internal var managedTasks = [Int: ManagedTask]()
+    private var managedTasks = [Int: ManagedTask]()
 
     
     // MARK: Life-Cycle
@@ -36,7 +36,7 @@ final public class TaskManager {
     
     
     private func addDependencies(from task: AnyTask) {
-        
+        // Resolve dependencies
         func recursiveAddDependencies(task: AnyTask) {
             guard let thisManagedTask = managedTasks[task.hashValue] else { return }
             
@@ -116,14 +116,12 @@ final public class TaskManager {
             }
         }
         
-        // Find tasks with all related task solved
+        // Find tasks with all depending tasks solved
         obtainResults: for thisManagedTask in findUnresolvedManagedTasks() {
             let dependencies = thisManagedTask.dependencies
             var results = [Dependency : Any?]()
             for dependency in dependencies {
-                
-                guard let depManagedTasks = self.managedTasks[dependency.hashValue], depManagedTasks.result.isObtained
-                    else { continue obtainResults }
+                guard let depManagedTasks = self.managedTasks[dependency.hashValue], depManagedTasks.result.isObtained else { continue obtainResults }
                 results[dependency] = depManagedTasks.result.obtainedResult
             }
             
