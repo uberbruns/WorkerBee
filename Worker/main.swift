@@ -137,17 +137,42 @@ class WorkerC: Worker<TaskC> {
 }
 
 
-struct ExitTask: Task {
+struct MainTask: Task {
     
     typealias Result = String
     
-    let name = "Exit"
-    let hashValue: Int
+    let name = "Main"
+    let hashValue = MainTask.typeHash
+    private static let typeHash = Int(arc4random())
     
-    init() {
-        self.hashValue = name.hashValue
+    func createWorker() -> AnyWorker {
+        return MainWorker(task: self)
+    }
+}
+
+
+class MainWorker: Worker<MainTask> {
+    
+    public required init(task: MainTask) {
+        super.init(task: task)
+        add(dependency: TaskB(), as: .precessor)
+        add(dependency: ExitTask(), as: .successor)
     }
     
+    override func main(results: [Dependency : Any], report: @escaping (Report) -> Void) {
+        report(.done("Main"))
+    }
+}
+
+
+struct ExitTask: Task {
+    
+    typealias Result = String
+
+    let name = "Exit"
+    let hashValue = ExitTask.typeHash
+    private static let typeHash = Int(arc4random())
+
     func createWorker() -> AnyWorker {
         return ExitWorker(task: self)
     }
@@ -158,31 +183,25 @@ class ExitWorker: Worker<ExitTask> {
     
     public required init(task: ExitTask) {
         super.init(task: task)
-        add(dependency: TaskB(), as: .precessor)
     }
     
     override func main(results: [Dependency : Any], report: @escaping (Report) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            print("EXIT", Array(results.values))
             report(.done("EXIT"))
+            exit(0)
         }
     }
 }
 
 
-
-ExitTask().solve { (result) in
-    print("SOLVED!")
-}
-
-ExitTask().solve { (result) in
-    print("SOLVED!")
+MainTask().solve { (result) in
+    print("End")
 }
 
 
 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-    print("End")
-    exit(0)
+    print("Error")
+    exit(1)
 }
 dispatchMain()
 

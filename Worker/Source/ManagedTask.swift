@@ -13,9 +13,9 @@ class ManagedTask {
     
     let original: AnyTask
     var result: Any?
-    var dependencies: Set<Dependency> = Set()
-    var state = State.unresolved
-    var completionHandler = [CompletionHandler]()
+    var dependencies: Set<Dependency>
+    var state: State
+    var completionHandler: [CompletionHandler]
 
     private var _worker: AnyWorker?
     var worker: AnyWorker {
@@ -33,7 +33,14 @@ class ManagedTask {
     init(original: AnyTask) {
         self.original = original
         self.result = nil
+        self.dependencies = Set()
+        self.state = .unresolved
+        self.completionHandler = []
         self._worker = nil
+    }
+    
+    func removeWorker() {
+        _worker = nil
     }
 }
 

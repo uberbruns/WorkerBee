@@ -10,11 +10,70 @@ import Foundation
 
 
 final public class TaskManager {
-    
+
+    // MARK: - Manager -
+    // MARK: Properties
+
     public static let shared = TaskManager()
     internal var managedTasks = [Int: ManagedTask]()
+
     
+    // MARK: Life-Cycle
+
     private init() { }
+    
+    
+    // MARK: - Managed Tasks -
+    // MARK: Add
+
+    @discardableResult private func addIfNeeded(task: AnyTask) -> ManagedTask {
+        if managedTasks[task.hashValue] == nil {
+            let managedTask = ManagedTask(original: task)
+            managedTasks[task.hashValue] = managedTask
+        }
+        return managedTasks[task.hashValue]!
+    }
+    
+    
+    private func addDependencies(from task: AnyTask) {
+        
+        func recursiveAddDependencies(task: AnyTask) {
+            guard let thisManagedTask = managedTasks[task.hashValue] else { return }
+            
+            for dependency in thisManagedTask.worker.dependencies {
+                let depManagedTask = addIfNeeded(task: dependency.original)
+                if depManagedTask.result == nil {
+                    recursiveAddDependencies(task: dependency.original)
+                }
+            }
+        }
+        
+        recursiveAddDependencies(task: task)
+    }
+
+    
+    // MARK: Find
+    
+    private func findUnresolvedManagedTasks() -> [ManagedTask] {
+        return self.managedTasks.values.filter { $0.result == nil && $0.state == .unresolved }
+    }
+    
+    
+    private func findManagedTasksDependingOn(_ searchedTask: AnyTask) -> [ManagedTask] {
+        return self.managedTasks.values.filter { managedTask in
+            return managedTask.dependencies.map({ $0.original }).contains(where: { depTask in
+                return depTask.hashValue == searchedTask.hashValue
+            })
+        }
+    }
+    
+    
+    private func findManagedTasksByState(_ state: ManagedTask.State) -> [ManagedTask] {
+        return self.managedTasks.values.filter { $0.state == state }
+    }
+
+    
+    // MARK: - Main -
     
     public func solve<T: Task>(task: T, then completionBlock: @escaping (T.Result) -> Void) {
         let completionHandler = ManagedTask.CompletionHandler { (result) in
@@ -29,41 +88,9 @@ final public class TaskManager {
         
         resolve()
     }
-    
-    
-    @discardableResult private func addIfNeeded(task: AnyTask) -> ManagedTask {
-        if managedTasks[task.hashValue] == nil {
-            let managedTask = ManagedTask(original: task)
-            managedTasks[task.hashValue] = managedTask
-        }
-        return managedTasks[task.hashValue]!
-    }
-    
-    
-    func findUnresolvedManagedTasks() -> [ManagedTask] {
-        return self.managedTasks.values.filter { $0.result == nil && $0.state == .unresolved }
-    }
-    
-    
-    func findManagedTasksDependingOn(_ searchedTask: AnyTask) -> [ManagedTask] {
-        return self.managedTasks.values.filter { managedTask in
-            return managedTask.dependencies.map({ $0.original }).contains(where: { depTask in
-                return depTask.hashValue == searchedTask.hashValue
-            })
-        }
-    }
-    
-    func findManagedTasksByState(_ state: ManagedTask.State) -> [ManagedTask] {
-        return self.managedTasks.values.filter { $0.state == state }
-    }
-    
+
     
     private func resolve() {
-        // Clean up
-//        for managedTask in managedTasks.values {
-//            managedTask.dependencies.removeAll()
-//        }
-        
         // Add dependencies of unfinished work
         for thisManagedTask in findUnresolvedManagedTasks() {
             addDependencies(from: thisManagedTask.original)
@@ -115,52 +142,33 @@ final public class TaskManager {
         }
         
         // Finish managed tasks
-        var repeatFinishTasks = true
-        while repeatFinishTasks {
-            repeatFinishTasks = false
-            finishTasks: for thisManagedTask in findManagedTasksByState(.resultObtained) {
+        var repeatFinishingTasks = true
+        while repeatFinishingTasks {
+            repeatFinishingTasks = false
+            finishingTasks: for thisManagedTask in findManagedTasksByState(.resultObtained) {
                 // Check if ALL workers dependencies have been solved
                 for dependency in thisManagedTask.worker.dependencies {
                     if self.managedTasks[dependency.hashValue]?.state != .completed {
-                        continue finishTasks
+                        continue finishingTasks
                     }
                 }
                 
                 // Finish task
                 thisManagedTask.state = .completed
-                
-                // Repeat this so tasks that rely on this task can be
+                thisManagedTask.dependencies.removeAll()
+                thisManagedTask.removeWorker()
+
+                // Repeat this for loop so tasks that rely on this task can be
                 // completed as well
-                repeatFinishTasks = true
+                repeatFinishingTasks = true
                 
                 // Call completion handlers
                 if let result = thisManagedTask.result {
-                    for completionHandler in thisManagedTask.completionHandler {
-                        completionHandler.handler(result)
-                    }
+                    thisManagedTask.completionHandler.forEach { $0.handler(result) }
                     thisManagedTask.completionHandler.removeAll()
                 }
-                
-                print("Finished", thisManagedTask.original.name)
             }
         }
-    }
-    
-    
-    private func addDependencies(from task: AnyTask) {
-        
-        func recursiveAddDependencies(task: AnyTask) {
-            guard let thisManagedTask = managedTasks[task.hashValue] else { return }
-            
-            for dependency in thisManagedTask.worker.dependencies {
-                let depManagedTask = addIfNeeded(task: dependency.original)
-                if depManagedTask.result == nil {
-                    recursiveAddDependencies(task: dependency.original)
-                }
-            }
-        }
-        
-        recursiveAddDependencies(task: task)
     }
 }
 
