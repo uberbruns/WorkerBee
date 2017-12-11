@@ -15,7 +15,10 @@ class ManagedTask {
     var result: TaskResult
     var dependencies: Set<Dependency>
     var state: State
+    
+    // Handler
     var completionHandler: [CompletionHandler]
+    var performMainWork: (ManagedTask, [Dependency: Any?], @escaping (Report) -> Void) -> Void
 
     private var _worker: AnyWorker?
     var worker: AnyWorker {
@@ -30,6 +33,7 @@ class ManagedTask {
         }
     }
 
+    
     init(original: AnyTask) {
         self.original = original
         self.result = .none
@@ -37,7 +41,9 @@ class ManagedTask {
         self.state = .unresolved
         self.completionHandler = []
         self._worker = nil
+        self.performMainWork = { _, _, _ in }
     }
+    
     
     func removeWorker() {
         _worker = nil

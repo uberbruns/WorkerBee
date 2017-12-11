@@ -76,16 +76,21 @@ final public class TaskManager {
     // MARK: - Main -
     
     public func solve<T: Task>(task: T, then completionBlock: @escaping (T.Result) -> Void) {
+        // Build completion handler
         let completionHandler = ManagedTask.CompletionHandler { (result) in
             guard let finalResult = result as? T.Result else {
                 fatalError("The result type does not match the expected Type (\(T.Result.self))")
             }
             completionBlock(finalResult)
         }
-        
+
         let managedTask = addIfNeeded(task: task)
         managedTask.completionHandler.append(completionHandler)
         
+        managedTask.performMainWork = { (managedTask, results, report) in
+            managedTask.worker.main(results: results, report: report)
+        }
+
         resolve()
     }
 
@@ -125,10 +130,9 @@ final public class TaskManager {
                 results[dependency] = depManagedTasks.result.obtainedResult
             }
             
+            // Execute main work
             thisManagedTask.state = .executing
-            
-            let worker = thisManagedTask.worker
-            worker.main(results: results, report: { [unowned self] (report) in
+            thisManagedTask.performMainWork(thisManagedTask, results, { [unowned self] (report) in
                 switch report {
                 case .done(let result):
                     thisManagedTask.result = .obtained(result)
