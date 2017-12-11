@@ -15,7 +15,15 @@ final public class TaskManager {
     // MARK: Properties
 
     public static let shared = TaskManager()
-    private var managedTasks = [Int: ManagedTask]()
+    private var isResolvedScheduled = false
+
+    internal private(set) var managedTasks = [Int: ManagedTask]()
+//    {
+//        didSet {
+//            let names = managedTasks.values.map({ $0.original.name })
+//            print(names.sorted())
+//        }
+//    }
 
     
     // MARK: Life-Cycle
@@ -66,12 +74,27 @@ final public class TaskManager {
             })
         }
     }
+
     
+    private func managedTasksExists(dependingOn searchedTask: AnyTask) -> Bool {
+        let first = self.managedTasks.values.first { managedTask in
+            return managedTask.dependencies.map({ $0.original }).contains(where: { depTask in
+                return depTask.hashValue == searchedTask.hashValue
+            })
+        }
+        return first != nil
+    }
+
     
     private func findManagedTasksToFinish() -> [ManagedTask] {
         return self.managedTasks.values.filter {
             ($0.state == .completed && !$0.completionHandler.isEmpty) || $0.state == .resultObtained
         }
+    }
+
+    
+    private func findCompletedManagedTasks() -> [ManagedTask] {
+        return self.managedTasks.values.filter { $0.state == .completed }
     }
 
     
@@ -91,8 +114,19 @@ final public class TaskManager {
         resolve()
     }
 
-    
+
     private func resolve() {
+        if isResolvedScheduled == false {
+            isResolvedScheduled = true
+            OperationQueue.main.addOperation { [unowned self] in
+                self.isResolvedScheduled = false
+                self.resolveImplementation()
+            }
+        }
+    }
+
+    
+    private func resolveImplementation() {
         // Add dependencies of unfinished work
         for thisManagedTask in findUnresolvedManagedTasks() {
             addDependencies(from: thisManagedTask.original)
@@ -169,6 +203,18 @@ final public class TaskManager {
                     let result = thisManagedTask.result.obtainedResult
                     thisManagedTask.completionHandler.forEach { $0.handler(result) }
                     thisManagedTask.completionHandler.removeAll()
+                }
+            }
+        }
+        
+        // Remove completed tasks
+        var repeatCompletedTasksCleanUp = true
+        while repeatCompletedTasksCleanUp {
+            repeatCompletedTasksCleanUp = false
+            for thisManagedTask in findCompletedManagedTasks() {
+                if managedTasksExists(dependingOn: thisManagedTask.original) == false {
+                    managedTasks.removeValue(forKey: thisManagedTask.hashValue)
+                    repeatCompletedTasksCleanUp = true
                 }
             }
         }

@@ -12,7 +12,7 @@ import Foundation
 
 class TestResults {
     static let shared = TestResults()
-    var results = [String]()
+    var executionOrder = [String]()
     private init() { }
 }
 
@@ -42,7 +42,7 @@ class WorkerA: Worker<TaskA> {
     
     override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            TestResults.shared.results.append("A")
+            TestResults.shared.executionOrder.append("A")
             report(.done("A"))
         }
     }
@@ -77,7 +77,7 @@ class WorkerB: Worker<TaskB> {
     
     override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            TestResults.shared.results.append("B")
+            TestResults.shared.executionOrder.append("B")
             report(.done("B"))
         }
     }
@@ -110,7 +110,7 @@ class WorkerC: Worker<TaskC> {
     
     override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            TestResults.shared.results.append("C")
+            TestResults.shared.executionOrder.append("C")
             report(.done("C"))
         }
     }
@@ -141,7 +141,7 @@ class MainWorker: Worker<MainTask> {
     
     
     override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
-        TestResults.shared.results.append("Main")
+        TestResults.shared.executionOrder.append("Main")
         report(.done("Main"))
     }
 }
@@ -169,7 +169,7 @@ class ExitWorker: Worker<ExitTask> {
     
     override func main(results: [Dependency : Any?], report: @escaping (Report) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            TestResults.shared.results.append("Exit")
+            TestResults.shared.executionOrder.append("Exit")
             report(.done("Exit"))
         }
     }
