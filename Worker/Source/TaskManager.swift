@@ -42,7 +42,7 @@ final public class TaskManager {
             
             for dependency in thisManagedTask.worker.dependencies {
                 let depManagedTask = addIfNeeded(task: dependency.original)
-                if depManagedTask.result == nil {
+                if depManagedTask.result.isNone {
                     recursiveAddDependencies(task: dependency.original)
                 }
             }
@@ -55,7 +55,7 @@ final public class TaskManager {
     // MARK: Find
     
     private func findUnresolvedManagedTasks() -> [ManagedTask] {
-        return self.managedTasks.values.filter { $0.result == nil && $0.state == .unresolved }
+        return self.managedTasks.values.filter { $0.result.isNone && $0.state == .unresolved }
     }
     
     
@@ -131,7 +131,7 @@ final public class TaskManager {
             worker.main(results: results, report: { [unowned self] (report) in
                 switch report {
                 case .done(let result):
-                    thisManagedTask.result = result
+                    thisManagedTask.result = .obtained(result)
                     thisManagedTask.state = .resultObtained
                 default:
                     fatalError()
@@ -163,7 +163,8 @@ final public class TaskManager {
                 repeatFinishingTasks = true
                 
                 // Call completion handlers
-                if let result = thisManagedTask.result {
+                if thisManagedTask.result.isObtained {
+                    let result = thisManagedTask.result.obtainedResult
                     thisManagedTask.completionHandler.forEach { $0.handler(result) }
                     thisManagedTask.completionHandler.removeAll()
                 }

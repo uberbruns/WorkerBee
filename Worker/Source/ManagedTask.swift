@@ -12,7 +12,7 @@ import Foundation
 class ManagedTask {
     
     let original: AnyTask
-    var result: Any?
+    var result: TaskResult
     var dependencies: Set<Dependency>
     var state: State
     var completionHandler: [CompletionHandler]
@@ -32,7 +32,7 @@ class ManagedTask {
 
     init(original: AnyTask) {
         self.original = original
-        self.result = nil
+        self.result = .none
         self.dependencies = Set()
         self.state = .unresolved
         self.completionHandler = []
@@ -63,7 +63,7 @@ extension ManagedTask: Hashable {
 extension ManagedTask {
     
     struct CompletionHandler {
-        let handler: (Any) -> ()
+        let handler: (Any?) -> ()
     }
 }
 
@@ -76,5 +76,35 @@ extension ManagedTask {
         case executing
         case resultObtained
         case completed
+    }
+}
+
+
+extension ManagedTask {
+    
+    enum TaskResult {
+        case obtained(Any?)
+        case none
+        
+        var isObtained: Bool {
+            if case .obtained = self {
+                return true
+            }
+            return false
+        }
+
+        var isNone: Bool {
+            if case .none = self {
+                return true
+            }
+            return false
+        }
+
+        var obtainedResult: Any? {
+            if case .obtained(let result) = self {
+                return result
+            }
+            return nil
+        }
     }
 }
