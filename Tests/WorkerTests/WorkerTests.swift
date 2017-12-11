@@ -16,12 +16,11 @@ class WorkerTests: XCTestCase {
         TestResults.shared.results.removeAll()
         
         TaskA().solve { (result) in
-            print(result)
-            XCTAssertEqual(TestResults.shared.results, ["A"])
+            XCTAssertEqual(result, "A")
             exp.fulfill()
         }
         
-        waitForExpectations(timeout: 4, handler: nil)
+        waitForExpectations(timeout: 20, handler: nil)
     }
 
     func testMixSuccessorsAndPrecessors() {
@@ -33,7 +32,7 @@ class WorkerTests: XCTestCase {
             exp.fulfill()
         }
         
-        waitForExpectations(timeout: 4, handler: nil)
+        waitForExpectations(timeout: 20, handler: nil)
     }
     
     static var allTests = [

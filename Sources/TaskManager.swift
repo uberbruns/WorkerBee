@@ -68,8 +68,10 @@ final public class TaskManager {
     }
     
     
-    private func findManagedTasksByState(_ state: ManagedTask.State) -> [ManagedTask] {
-        return self.managedTasks.values.filter { $0.state == state }
+    private func findManagedTasksToFinish() -> [ManagedTask] {
+        return self.managedTasks.values.filter {
+            ($0.state == .completed && !$0.completionHandler.isEmpty) || $0.state == .resultObtained
+        }
     }
 
     
@@ -145,7 +147,7 @@ final public class TaskManager {
         var repeatFinishingTasks = true
         while repeatFinishingTasks {
             repeatFinishingTasks = false
-            finishingTasks: for thisManagedTask in findManagedTasksByState(.resultObtained) {
+            finishingTasks: for thisManagedTask in findManagedTasksToFinish() {
                 // Check if ALL workers dependencies have been solved
                 for dependency in thisManagedTask.worker.dependencies {
                     if self.managedTasks[dependency.hashValue]?.state != .completed {
