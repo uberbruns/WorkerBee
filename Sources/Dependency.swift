@@ -21,6 +21,7 @@ public struct Dependency: Hashable {
     public let original: AnyTask
     public let hashValue: Int
     
+    
     public init<T: Task>(task: T, relationship: Relationship) {
         self.original = task
         self.relationship = relationship

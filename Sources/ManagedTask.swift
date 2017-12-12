@@ -12,6 +12,7 @@ import Foundation
 class ManagedTask {
     
     let original: AnyTask
+    
     var result: TaskResult
     var dependencies: Set<Dependency>
     var state: State
@@ -29,6 +30,7 @@ class ManagedTask {
             }
         }
     }
+    
 
     init(original: AnyTask) {
         self.original = original
@@ -38,6 +40,7 @@ class ManagedTask {
         self.completionHandler = []
         self._worker = nil
     }
+    
     
     func removeWorker() {
         _worker = nil

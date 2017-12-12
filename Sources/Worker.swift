@@ -31,7 +31,7 @@ open class Worker<T: Task>: AnyWorker {
     public var anyTask: AnyTask{ return task }
     public private(set) var dependencies: Set<Dependency>
     
-    public var numberOfChildTasks: Int { return 1 }
+    public var parallelChildTasks: Int { return 1 }
     
     
     public required init(task: T) {
