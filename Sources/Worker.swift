@@ -18,7 +18,7 @@ public enum Report {
 public protocol AnyWorker: class {
     var dependencies: Set<Dependency> { get }
     var anyTask: AnyTask { get }
-    func main(results: [Dependency : Any], report: @escaping (Report, Any?) -> Void)
+    func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void)
     func cleanUp(report: @escaping (Report) -> Void)
 }
 
@@ -62,7 +62,7 @@ open class Worker<T: Task>: AnyWorker {
     }
     
     
-    open func main(results: [Dependency : Any], report: @escaping (Report, Any?) -> Void) {
+    open func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void) {
         report(.done, nil)
     }
     

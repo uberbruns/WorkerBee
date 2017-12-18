@@ -23,6 +23,24 @@ class WorkerTests: XCTestCase {
     }
 
     
+    func testWithDependencies() {
+        let exp = expectation(description: "")
+        TestResults.shared.executionLog.removeAll()
+        TestResults.shared.results = nil
+        
+        let taskA = TaskA()
+        let taskB = TaskB()
+
+        taskB.solve { (result) in
+            XCTAssertEqual(TestResults.shared.executionLog, ["A", "B", "C"])
+            XCTAssertEqual(TestResults.shared.results?[taskA], "A")
+            exp.fulfill()
+        }
+        
+        waitForExpectations(timeout: 5, handler: nil)
+    }
+    
+    
     func testExecutionDeduplication() {
         let expMain = expectation(description: "Main")
         let expExit = expectation(description: "Exit")
@@ -84,6 +102,7 @@ class WorkerTests: XCTestCase {
     
     static var allTests = [
         ("testWithNoDependencies", testWithNoDependencies),
+        ("testWithDependencies", testWithDependencies),
         ("testExecutionDeduplication", testExecutionDeduplication),
         ("testMixSuccessorsAndPrecessors", testMixSuccessorsAndPrecessors),
         ("testTaskRemoval", testTaskRemoval),

@@ -13,6 +13,8 @@ import Foundation
 class TestResults {
     static let shared = TestResults()
     var executionLog = [String]()
+    var results: Dependency.Results?
+    
     private init() { }
 }
 
@@ -45,7 +47,7 @@ class WorkerA: Worker<TaskA> {
     }
     
     
-    override func main(results: [Dependency : Any], report: @escaping (Report, Any?) -> Void) {
+    override func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             TestResults.shared.executionLog.append("A")
             report(.done, "A")
@@ -77,16 +79,20 @@ struct TaskB: Task {
 
 class WorkerB: Worker<TaskB> {
     
+    let taskA = TaskA()
+    let taskC = TaskC()
+
     public required init(task: TaskB) {
         super.init(task: task)
-        add(dependency: TaskA(), as: .precessor)
-        add(dependency: TaskC(), as: .successor)
+        add(dependency: taskA, as: .precessor)
+        add(dependency: taskC, as: .successor)
     }
     
     
-    override func main(results: [Dependency : Any], report: @escaping (Report, Any?) -> Void) {
+    override func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             TestResults.shared.executionLog.append("B")
+            TestResults.shared.results = results
             report(.done, "B")
         }
     }
@@ -128,7 +134,7 @@ class WorkerC: Worker<TaskC> {
     }
     
     
-    override func main(results: [Dependency : Any], report: @escaping (Report, Any?) -> Void) {
+    override func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             TestResults.shared.executionLog.append("C")
             report(.done, "C")
@@ -161,7 +167,7 @@ class MainWorker: Worker<MainTask> {
     }
     
     
-    override func main(results: [Dependency : Any], report: @escaping (Report, Any?) -> Void) {
+    override func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void) {
         TestResults.shared.executionLog.append("Main")
         report(.done, "Main")
     }
@@ -192,7 +198,7 @@ class SubWorker: Worker<SubTask> {
     }
     
     
-    override func main(results: [Dependency : Any], report: @escaping (Report, Any?) -> Void) {
+    override func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             TestResults.shared.executionLog.append("SubTask")
             report(.done, "SubTask")
@@ -223,7 +229,7 @@ class ExitWorker: Worker<ExitTask> {
         super.init(task: task)
     }
     
-    override func main(results: [Dependency : Any], report: @escaping (Report, Any?) -> Void) {
+    override func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             TestResults.shared.executionLog.append("Exit")
             report(.done, "Exit")

@@ -172,10 +172,10 @@ final public class TaskManager {
         // Find tasks with all depending tasks solved
         obtainResults: for thisManagedTask in findUnresolvedManagedTasks() {
             let dependencies = thisManagedTask.dependencies
-            var results = [Dependency : Any]()
+            var results = Dependency.Results()
             for dependency in dependencies {
                 guard let depManagedTasks = self.managedTasks[dependency.hashValue], depManagedTasks.result.isObtained else { continue obtainResults }
-                results[dependency] = depManagedTasks.result.obtainedResult
+                results.storage[dependency.hashValue] = depManagedTasks.result.obtainedResult
             }
             
             thisManagedTask.state = .executing
