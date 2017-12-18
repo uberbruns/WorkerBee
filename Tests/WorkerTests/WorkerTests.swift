@@ -28,7 +28,7 @@ class WorkerTests: XCTestCase {
         let expExit = expectation(description: "Exit")
         let expC    = expectation(description: "C")
         let expExec = expectation(description: "Execution")
-        TestResults.shared.executionOrder.removeAll()
+        TestResults.shared.executionLog.removeAll()
 
         MainTask().solve { (result) in
             XCTAssertEqual(result, "Main")
@@ -46,7 +46,7 @@ class WorkerTests: XCTestCase {
         }
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {
-            XCTAssertEqual(TestResults.shared.executionOrder, ["A", "B", "C", "Main", "Exit"])
+            XCTAssertEqual(TestResults.shared.executionLog, ["A", "B", "C", "Main", "Exit"])
             expExec.fulfill()
         })
 
@@ -56,10 +56,10 @@ class WorkerTests: XCTestCase {
 
     func testMixSuccessorsAndPrecessors() {
         let exp = expectation(description: "")
-        TestResults.shared.executionOrder.removeAll()
+        TestResults.shared.executionLog.removeAll()
 
         MainTask().solve { (result) in
-            XCTAssertEqual(TestResults.shared.executionOrder, ["A", "B", "C", "Main", "Exit"])
+            XCTAssertEqual(TestResults.shared.executionLog, ["A", "B", "C", "Main", "Exit"])
             exp.fulfill()
         }
         
@@ -67,9 +67,9 @@ class WorkerTests: XCTestCase {
     }
 
     
-    func testTaskCleanUp() {
+    func testTaskRemoval() {
         let exp = expectation(description: "")
-        TestResults.shared.executionOrder.removeAll()
+        TestResults.shared.executionLog.removeAll()
         
         MainTask().solve { (result) in
             DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {
@@ -86,6 +86,6 @@ class WorkerTests: XCTestCase {
         ("testWithNoDependencies", testWithNoDependencies),
         ("testExecutionDeduplication", testExecutionDeduplication),
         ("testMixSuccessorsAndPrecessors", testMixSuccessorsAndPrecessors),
-        ("testTaskCleanUp", testTaskCleanUp),
+        ("testTaskRemoval", testTaskRemoval),
     ]
 }

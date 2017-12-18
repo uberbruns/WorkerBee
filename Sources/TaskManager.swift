@@ -76,16 +76,6 @@ final public class TaskManager {
     }
 
     
-    private func managedTasksExists(dependingOn searchedTask: AnyTask) -> Bool {
-        let first = self.managedTasks.values.first { managedTask in
-            return managedTask.dependencies.map({ $0.original }).contains(where: { depTask in
-                return depTask.hashValue == searchedTask.hashValue
-            })
-        }
-        return first != nil
-    }
-
-    
     private func findManagedTasksToFinish() -> [ManagedTask] {
         return self.managedTasks.values.filter {
             ($0.state == .completed && !$0.completionHandler.isEmpty) || $0.state == .resultObtained
@@ -95,6 +85,30 @@ final public class TaskManager {
     
     private func findCompletedManagedTasks() -> [ManagedTask] {
         return self.managedTasks.values.filter { $0.state == .completed }
+    }
+
+
+    private func doManagedTasksExist(dependingOn searchedTask: AnyTask) -> Bool {
+        for managedTask in managedTasks.values {
+            for depManagedTask in managedTask.dependencies {
+                if depManagedTask.original.hashValue == searchedTask.hashValue {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    
+    private func doManagedTasksExist(childOf parentTask: AnyTask) -> Bool {
+        for managedTask in managedTasks.values {
+            for depManagedTask in managedTask.dependencies {
+                if depManagedTask.original.hashValue == parentTask.hashValue && depManagedTask.relationship == .parent {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     
@@ -111,23 +125,23 @@ final public class TaskManager {
         let managedTask = addIfNeeded(task: task)
         managedTask.completionHandler.append(completionHandler)
         
-        resolve()
+        setNeedsResolve()
     }
 
 
-    private func resolve() {
+    private func setNeedsResolve() {
         if isResolvedScheduled == false {
             isResolvedScheduled = true
             OperationQueue.main.addOperation { [unowned self] in
                 self.isResolvedScheduled = false
-                self.resolveImplementation()
+                self.resolve()
             }
         }
     }
 
     
-    private func resolveImplementation() {
-        // Add dependencies of unfinished work
+    private func resolve() {
+        // Add dependencies of uncompleted work
         for thisManagedTask in findUnresolvedManagedTasks() {
             addDependencies(from: thisManagedTask.original)
         }
@@ -138,7 +152,10 @@ final public class TaskManager {
                 
                 if dependency.relationship == .precessor {
                     thisManagedTask.dependencies.insert(dependency)
-                    
+
+                } else if dependency.relationship == .parent {
+                        thisManagedTask.dependencies.insert(dependency)
+
                 } else if dependency.relationship == .successor, let depManagedTask = managedTasks[dependency.hashValue] {
                     
                     let thisManagedTaskAsDependency = Dependency(anyTask: thisManagedTask.original, relationship: .precessor)
@@ -155,24 +172,22 @@ final public class TaskManager {
         // Find tasks with all depending tasks solved
         obtainResults: for thisManagedTask in findUnresolvedManagedTasks() {
             let dependencies = thisManagedTask.dependencies
-            var results = [Dependency : Any?]()
+            var results = [Dependency : Any]()
             for dependency in dependencies {
                 guard let depManagedTasks = self.managedTasks[dependency.hashValue], depManagedTasks.result.isObtained else { continue obtainResults }
                 results[dependency] = depManagedTasks.result.obtainedResult
             }
             
             thisManagedTask.state = .executing
-            
-            let worker = thisManagedTask.worker
-            worker.main(results: results, report: { [unowned self] (report) in
+            thisManagedTask.worker.main(results: results, report: { [unowned self] (report, result) in
                 switch report {
-                case .done(let result):
+                case .done:
                     thisManagedTask.result = .obtained(result)
                     thisManagedTask.state = .resultObtained
                 default:
                     fatalError()
                 }
-                self.resolve()
+                self.setNeedsResolve()
                 return
             })
         }
@@ -189,8 +204,7 @@ final public class TaskManager {
                     }
                 }
                 
-                // Finish task
-                thisManagedTask.state = .completed
+                // Complete task
                 thisManagedTask.dependencies.removeAll()
                 thisManagedTask.removeWorker()
 
@@ -199,10 +213,12 @@ final public class TaskManager {
                 repeatFinishingTasks = true
                 
                 // Call completion handlers
-                if thisManagedTask.result.isObtained {
+                let hasChildren = doManagedTasksExist(childOf: thisManagedTask.original)
+                if !hasChildren && thisManagedTask.result.isObtained {
                     let result = thisManagedTask.result.obtainedResult
                     thisManagedTask.completionHandler.forEach { $0.handler(result) }
                     thisManagedTask.completionHandler.removeAll()
+                    thisManagedTask.state = .completed
                 }
             }
         }
@@ -212,7 +228,7 @@ final public class TaskManager {
         while repeatCompletedTasksCleanUp {
             repeatCompletedTasksCleanUp = false
             for thisManagedTask in findCompletedManagedTasks() {
-                if managedTasksExists(dependingOn: thisManagedTask.original) == false {
+                if doManagedTasksExist(dependingOn: thisManagedTask.original) == false {
                     managedTasks.removeValue(forKey: thisManagedTask.hashValue)
                     repeatCompletedTasksCleanUp = true
                 }
