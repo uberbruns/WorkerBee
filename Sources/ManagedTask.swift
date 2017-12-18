@@ -9,6 +9,13 @@
 import Foundation
 
 
+private class WorkForce {
+    static let shared = WorkForce()
+    var worker = [Int: AnyWorker]()
+    private init() { }
+}
+
+
 class ManagedTask {
     
     let original: AnyTask
@@ -18,14 +25,13 @@ class ManagedTask {
     var state: State
     var completionHandler: [CompletionHandler]
 
-    private var _worker: AnyWorker?
     var worker: AnyWorker {
         get {
-            if let worker = _worker {
+            if let worker = WorkForce.shared.worker[hashValue] {
                 return worker
             } else {
                 let newWorker = original.createWorker()
-                _worker = newWorker
+                WorkForce.shared.worker[hashValue] = newWorker
                 return newWorker
             }
         }
@@ -38,12 +44,16 @@ class ManagedTask {
         self.dependencies = Set()
         self.state = .unresolved
         self.completionHandler = []
-        self._worker = nil
+    }
+    
+    
+    deinit {
+        removeWorker()
     }
     
     
     func removeWorker() {
-        _worker = nil
+        WorkForce.shared.worker.removeValue(forKey: hashValue)
     }
 }
 
