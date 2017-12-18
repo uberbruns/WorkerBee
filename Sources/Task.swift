@@ -20,3 +20,27 @@ public protocol AnyTask {
 public protocol Task: AnyTask {
     associatedtype Result
 }
+
+
+struct TypeErasedTask: Hashable {
+    
+    public let original: AnyTask
+    public let hashValue: Int
+    
+    
+    public init<T: Task>(task: T) {
+        self.original = task
+        self.hashValue = task.hashValue
+    }
+    
+    
+    init(anyTask task: AnyTask) {
+        self.original = task
+        self.hashValue = task.hashValue
+    }
+    
+    
+    public static func ==(lhs: TypeErasedTask, rhs: TypeErasedTask) -> Bool {
+        return lhs.hashValue == rhs.hashValue
+    }
+}

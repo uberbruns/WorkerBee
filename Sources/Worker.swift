@@ -18,6 +18,8 @@ public enum Report {
 public protocol AnyWorker: class {
     var dependencies: Set<Dependency> { get }
     var anyTask: AnyTask { get }
+    var completionHandler: [CompletionHandler] { get set }
+
     func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void)
     func cleanUp(report: @escaping (Report) -> Void)
 }
@@ -33,10 +35,13 @@ open class Worker<T: Task>: AnyWorker {
     
     public var parallelChildTasks: Int { return 1 }
     
+    public var completionHandler: [CompletionHandler]
+
     
     public required init(task: T) {
         self.task = task
         self.dependencies = []
+        self.completionHandler = []
     }
     
     
@@ -75,4 +80,9 @@ open class Worker<T: Task>: AnyWorker {
     open func cancel(report: @escaping (Report) -> Void) {
         report(.done)
     }
+}
+
+
+public struct CompletionHandler {
+    let handler: (Any?) -> ()
 }

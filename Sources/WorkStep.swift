@@ -16,34 +16,32 @@ private class WorkForce {
 }
 
 
-class ManagedTask {
+class WorkStep {
     
     let original: AnyTask
     
     var result: TaskResult
-    var dependencies: Set<Dependency>
+    var dependencies: Set<TypeErasedTask>
     var state: State
-    var completionHandler: [CompletionHandler]
+    var phase: Phase
 
     var worker: AnyWorker {
-        get {
-            if let worker = WorkForce.shared.worker[hashValue] {
-                return worker
-            } else {
-                let newWorker = original.createWorker()
-                WorkForce.shared.worker[hashValue] = newWorker
-                return newWorker
-            }
+        if let worker = WorkForce.shared.worker[hashValue] {
+            return worker
+        } else {
+            let newWorker = original.createWorker()
+            WorkForce.shared.worker[hashValue] = newWorker
+            return newWorker
         }
     }
     
 
-    init(original: AnyTask) {
+    init(original: AnyTask, phase: Phase) {
         self.original = original
+        self.phase = phase
         self.result = .none
         self.dependencies = Set()
         self.state = .unresolved
-        self.completionHandler = []
     }
     
     
@@ -59,41 +57,43 @@ class ManagedTask {
 
 
 
-extension ManagedTask: Hashable {
+extension WorkStep: Hashable {
     
     var hashValue: Int {
-        return original.hashValue
+        var hashValue = original.hashValue
+        extendHash(&hashValue, with: phase.rawValue)
+        return hashValue
     }
     
     
-    static func ==(lhs: ManagedTask, rhs: ManagedTask) -> Bool {
+    static func ==(lhs: WorkStep, rhs: WorkStep) -> Bool {
         return lhs.hashValue == rhs.hashValue
     }
 }
 
 
 
-extension ManagedTask {
-    
-    struct CompletionHandler {
-        let handler: (Any?) -> ()
-    }
-}
-
-
-
-extension ManagedTask {
+extension WorkStep {
     
     enum State {
         case unresolved
         case executing
-        case resultObtained
         case completed
     }
 }
 
 
-extension ManagedTask {
+extension WorkStep {
+    
+    enum Phase: Int {
+        case main
+        case callCompletionHandler
+        case cleanUp
+    }
+}
+
+
+extension WorkStep {
     
     enum TaskResult {
         case obtained(Any?)

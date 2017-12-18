@@ -91,7 +91,7 @@ class WorkerTests: XCTestCase {
         
         MainTask().solve { (result) in
             DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {
-                XCTAssertEqual(TaskManager.shared.managedTasks.isEmpty, true)
+                XCTAssertEqual(TaskManager.shared.workSteps.isEmpty, true)
                 exp.fulfill()
             })
         }

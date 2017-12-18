@@ -1,5 +1,5 @@
 //
-//  Solver.swift
+//  TaskManager.swift
 //  Worker
 //
 //  Created by Karsten Bruns on 09.12.17.
@@ -17,10 +17,10 @@ final public class TaskManager {
     public static let shared = TaskManager()
     private var isResolvedScheduled = false
 
-    internal private(set) var managedTasks = [Int: ManagedTask]()
+    internal private(set) var workSteps = WorkSteps()
 //    {
 //        didSet {
-//            let names = managedTasks.values.map({ $0.original.name })
+//            let names = workSteps.values.map({ $0.original.name })
 //            print(names.sorted())
 //        }
 //    }
@@ -31,26 +31,29 @@ final public class TaskManager {
     private init() { }
     
     
-    // MARK: - Managed Tasks -
+    // MARK: - Micro Tasks -
     // MARK: Add
 
-    @discardableResult private func addIfNeeded(task: AnyTask) -> ManagedTask {
-        if managedTasks[task.hashValue] == nil {
-            let managedTask = ManagedTask(original: task)
-            managedTasks[task.hashValue] = managedTask
+    @discardableResult private func addIfNeeded(task: AnyTask) -> WorkStep {
+        if workSteps[task: task, phase: .main] == nil {
+            workSteps.insert(task: task, phase: .main)
+//            let main = workSteps.insert(task: task, phase: .main)
+//            let callCompletionHandler = workSteps.insert(task: task, phase: .callCompletionHandler)
+//            let cleanUp = workSteps.insert(task: task, phase: .cleanUp)
+//            callCompletionHandler.dependencies.insert(<#T##newMember: Dependency##Dependency#>)
         }
-        return managedTasks[task.hashValue]!
+        return workSteps[task: task, phase: .main]!
     }
     
     
     private func addDependencies(from task: AnyTask) {
         // Resolve dependencies
         func recursiveAddDependencies(task: AnyTask) {
-            guard let thisManagedTask = managedTasks[task.hashValue] else { return }
+            guard let thisWorkStep = workSteps[task: task, phase: .main] else { return }
             
-            for dependency in thisManagedTask.worker.dependencies {
-                let depManagedTask = addIfNeeded(task: dependency.original)
-                if depManagedTask.result.isNone {
+            for dependency in thisWorkStep.worker.dependencies {
+                let depWorkStep = addIfNeeded(task: dependency.original)
+                if depWorkStep.result.isNone {
                     recursiveAddDependencies(task: dependency.original)
                 }
             }
@@ -62,36 +65,38 @@ final public class TaskManager {
     
     // MARK: Find
     
-    private func findUnresolvedManagedTasks() -> [ManagedTask] {
-        return self.managedTasks.values.filter { $0.result.isNone && $0.state == .unresolved }
+    private func findUnresolvedWorkSteps() -> [WorkStep] {
+        return self.workSteps.values.filter { $0.result.isNone && $0.state == .unresolved }
     }
     
     
-    private func findManagedTasksDependingOn(_ searchedTask: AnyTask) -> [ManagedTask] {
-        return self.managedTasks.values.filter { managedTask in
-            return managedTask.dependencies.map({ $0.original }).contains(where: { depTask in
+    private func findWorkStepsDependingOn(_ searchedTask: AnyTask) -> [WorkStep] {
+        return self.workSteps.values.filter { workStep in
+            return workStep.dependencies.map({ $0.original }).contains(where: { depTask in
                 return depTask.hashValue == searchedTask.hashValue
             })
         }
     }
 
     
-    private func findManagedTasksToFinish() -> [ManagedTask] {
-        return self.managedTasks.values.filter {
-            ($0.state == .completed && !$0.completionHandler.isEmpty) || $0.state == .resultObtained
+    private func findCompletionHandlersToCall() -> [WorkStep] {
+        return self.workSteps.values.filter {
+            $0.state == .completed && !$0.worker.completionHandler.isEmpty
         }
     }
 
     
-    private func findCompletedManagedTasks() -> [ManagedTask] {
-        return self.managedTasks.values.filter { $0.state == .completed }
+    private func findCompletedWorkSteps() -> [WorkStep] {
+        return self.workSteps.values.filter {
+            $0.state == .completed && $0.worker.completionHandler.isEmpty
+        }
     }
 
 
-    private func doManagedTasksExist(dependingOn searchedTask: AnyTask) -> Bool {
-        for managedTask in managedTasks.values {
-            for depManagedTask in managedTask.dependencies {
-                if depManagedTask.original.hashValue == searchedTask.hashValue {
+    private func doWorkStepsExist(dependingOn searchedTask: AnyTask) -> Bool {
+        for workStep in workSteps.values {
+            for depWorkStep in workStep.dependencies {
+                if depWorkStep.original.hashValue == searchedTask.hashValue {
                     return true
                 }
             }
@@ -100,30 +105,32 @@ final public class TaskManager {
     }
 
     
-    private func doManagedTasksExist(childOf parentTask: AnyTask) -> Bool {
-        for managedTask in managedTasks.values {
-            for depManagedTask in managedTask.dependencies {
-                if depManagedTask.original.hashValue == parentTask.hashValue && depManagedTask.relationship == .parent {
+    /*
+    private func doWorkStepsExist(childOf parentTask: AnyTask) -> Bool {
+        for workStep in workSteps.values {
+            for depWorkStep in workStep.dependencies {
+                if depWorkStep.original.hashValue == parentTask.hashValue && depWorkStep.relationship == .parent {
                     return true
                 }
             }
         }
         return false
     }
+ */
 
     
     // MARK: - Main -
     
     public func solve<T: Task>(task: T, then completionBlock: @escaping (T.Result) -> Void) {
-        let completionHandler = ManagedTask.CompletionHandler { (result) in
+        let completionHandler = CompletionHandler { (result) in
             guard let finalResult = result as? T.Result else {
                 fatalError("The result type does not match the expected Type (\(T.Result.self))")
             }
             completionBlock(finalResult)
         }
         
-        let managedTask = addIfNeeded(task: task)
-        managedTask.completionHandler.append(completionHandler)
+        let workStep = addIfNeeded(task: task)
+        workStep.worker.completionHandler.append(completionHandler)
         
         setNeedsResolve()
     }
@@ -142,48 +149,49 @@ final public class TaskManager {
     
     private func resolve() {
         // Add dependencies of uncompleted work
-        for thisManagedTask in findUnresolvedManagedTasks() {
-            addDependencies(from: thisManagedTask.original)
+        for thisWorkStep in findUnresolvedWorkSteps() {
+            addDependencies(from: thisWorkStep.original)
         }
         
-        // Add dependencies to managed tasks
-        for thisManagedTask in findUnresolvedManagedTasks() {
-            for dependency in thisManagedTask.worker.dependencies {
+        // Add dependencies to micro tasks
+        for thisWorkStep in findUnresolvedWorkSteps() {
+            for dependency in thisWorkStep.worker.dependencies {
+                let depTask = TypeErasedTask(anyTask: dependency.original)
                 
                 if dependency.relationship == .precessor {
-                    thisManagedTask.dependencies.insert(dependency)
+                    thisWorkStep.dependencies.insert(depTask)
 
                 } else if dependency.relationship == .parent {
-                        thisManagedTask.dependencies.insert(dependency)
+                        thisWorkStep.dependencies.insert(depTask)
 
-                } else if dependency.relationship == .successor, let depManagedTask = managedTasks[dependency.hashValue] {
+                } else if dependency.relationship == .successor, let depWorkStep = workSteps[task: dependency.original, phase: .main] {
                     
-                    let thisManagedTaskAsDependency = Dependency(anyTask: thisManagedTask.original, relationship: .precessor)
-                    for onThisDepending in findManagedTasksDependingOn(thisManagedTask.original) {
+                    let thisWorkStepAsDependency = TypeErasedTask(anyTask: thisWorkStep.original)
+                    for onThisDepending in findWorkStepsDependingOn(thisWorkStep.original) {
                         guard dependency.original.hashValue != onThisDepending.original.hashValue else { continue }
-                        onThisDepending.dependencies.insert(dependency)
+                        onThisDepending.dependencies.insert(depTask)
                     }
                     
-                    depManagedTask.dependencies.insert(thisManagedTaskAsDependency)
+                    depWorkStep.dependencies.insert(thisWorkStepAsDependency)
                 }
             }
         }
         
-        // Find tasks with all depending tasks solved
-        obtainResults: for thisManagedTask in findUnresolvedManagedTasks() {
-            let dependencies = thisManagedTask.dependencies
+        // Perform work
+        obtainResults: for thisWorkStep in findUnresolvedWorkSteps() {
+            let dependencies = thisWorkStep.dependencies
             var results = Dependency.Results()
             for dependency in dependencies {
-                guard let depManagedTasks = self.managedTasks[dependency.hashValue], depManagedTasks.result.isObtained else { continue obtainResults }
-                results.storage[dependency.hashValue] = depManagedTasks.result.obtainedResult
+                guard let depWorkSteps = self.workSteps[task: dependency.original, phase: .main], depWorkSteps.result.isObtained else { continue obtainResults }
+                results.storage[dependency.hashValue] = depWorkSteps.result.obtainedResult
             }
             
-            thisManagedTask.state = .executing
-            thisManagedTask.worker.main(results: results, report: { [unowned self] (report, result) in
+            thisWorkStep.state = .executing
+            thisWorkStep.worker.main(results: results, report: { [unowned self] (report, result) in
                 switch report {
                 case .done:
-                    thisManagedTask.result = .obtained(result)
-                    thisManagedTask.state = .resultObtained
+                    thisWorkStep.result = .obtained(result)
+                    thisWorkStep.state = .completed
                 default:
                     fatalError()
                 }
@@ -192,34 +200,34 @@ final public class TaskManager {
             })
         }
         
-        // Finish managed tasks
+        // Call completion handlers
         var repeatFinishingTasks = true
         while repeatFinishingTasks {
             repeatFinishingTasks = false
-            finishingTasks: for thisManagedTask in findManagedTasksToFinish() {
+            finishingTasks: for thisWorkStep in findCompletionHandlersToCall() {
                 // Check if ALL workers dependencies have been solved
-                for dependency in thisManagedTask.worker.dependencies {
-                    if self.managedTasks[dependency.hashValue]?.state != .completed {
+                for dependency in thisWorkStep.worker.dependencies {
+                    if self.workSteps[task: dependency.original, phase: .main]?.state != .completed {
                         continue finishingTasks
                     }
                 }
                 
+                // Call completion handlers
+                // let hasChildren = doWorkStepsExist(childOf: thisWorkStep.original)
+                if thisWorkStep.result.isObtained { // !hasChildren && 
+                    let result = thisWorkStep.result.obtainedResult
+                    thisWorkStep.worker.completionHandler.forEach { $0.handler(result) }
+                    thisWorkStep.worker.completionHandler.removeAll()
+                }
+                
                 // Complete task
-                thisManagedTask.dependencies.removeAll()
-                thisManagedTask.removeWorker()
-
+                thisWorkStep.dependencies.removeAll()
+                thisWorkStep.removeWorker()
+                
                 // Repeat this for loop so tasks that rely on this task can be
                 // completed as well
                 repeatFinishingTasks = true
-                
-                // Call completion handlers
-                let hasChildren = doManagedTasksExist(childOf: thisManagedTask.original)
-                if !hasChildren && thisManagedTask.result.isObtained {
-                    let result = thisManagedTask.result.obtainedResult
-                    thisManagedTask.completionHandler.forEach { $0.handler(result) }
-                    thisManagedTask.completionHandler.removeAll()
-                    thisManagedTask.state = .completed
-                }
+
             }
         }
         
@@ -227,15 +235,58 @@ final public class TaskManager {
         var repeatCompletedTasksCleanUp = true
         while repeatCompletedTasksCleanUp {
             repeatCompletedTasksCleanUp = false
-            for thisManagedTask in findCompletedManagedTasks() {
-                if doManagedTasksExist(dependingOn: thisManagedTask.original) == false {
-                    managedTasks.removeValue(forKey: thisManagedTask.hashValue)
+            for thisWorkStep in findCompletedWorkSteps() {
+                if doWorkStepsExist(dependingOn: thisWorkStep.original) == false {
+                    workSteps.remove(workStep: thisWorkStep)
                     repeatCompletedTasksCleanUp = true
                 }
             }
         }
     }
 }
+
+
+extension TaskManager {
+
+    class WorkSteps {
+        private var steps: [Int: WorkStep]
+        
+        init() {
+            self.steps = [Int: WorkStep]()
+        }
+        
+        
+        subscript(task task: AnyTask, phase phase: WorkStep.Phase) -> WorkStep? {
+            var hash = task.hashValue
+            extendHash(&hash, with: phase.rawValue)
+            return steps[hash]
+        }
+
+        
+        @discardableResult func insert(task: AnyTask, phase: WorkStep.Phase) -> WorkStep {
+            let workStep = WorkStep(original: task, phase: phase)
+            let hash = workStep.hashValue
+            steps[hash] = workStep
+            return workStep
+        }
+
+        
+        func remove(workStep: WorkStep) {
+            steps.removeValue(forKey: workStep.hashValue)
+        }
+
+        
+        var values: Dictionary<Int, WorkStep>.Values {
+            return steps.values
+        }
+        
+        
+        var isEmpty: Bool {
+            return steps.isEmpty
+        }
+    }
+}
+
 
 
 extension Task {
