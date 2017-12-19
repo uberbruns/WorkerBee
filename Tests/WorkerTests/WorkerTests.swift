@@ -13,8 +13,11 @@ import XCTest
 class WorkerTests: XCTestCase {
     func testWithNoDependencies() {
         let exp = expectation(description: "")
-        
+        TestResults.shared.executionLog.removeAll()
+        TestResults.shared.results = nil
+
         TestTask(name: "A").solve { (result) in
+            XCTAssertEqual(TestResults.shared.executionLog, ["A", "/A"])
             XCTAssertEqual(result, "A")
             exp.fulfill()
         }
@@ -31,7 +34,7 @@ class WorkerTests: XCTestCase {
         let task = TestTask(name: "B", precessors: ["A"])
         
         task.solve { (result) in
-            XCTAssertEqual(TestResults.shared.executionLog, ["A", "B"])
+            XCTAssertEqual(TestResults.shared.executionLog, ["A", "/A", "B", "/B"])
             exp.fulfill()
         }
         
@@ -47,7 +50,7 @@ class WorkerTests: XCTestCase {
         let task = TestTask(name: "A", successors: ["B"])
 
         task.solve { (result) in
-            XCTAssertEqual(TestResults.shared.executionLog, ["A", "B"])
+            XCTAssertEqual(TestResults.shared.executionLog, ["A", "/A", "B", "/B"])
             exp.fulfill()
         }
         
@@ -62,7 +65,7 @@ class WorkerTests: XCTestCase {
         
         let task = TestTask(name: "B", precessors: ["A"], successors: ["C"])
         task.solve { (result) in
-            XCTAssertEqual(TestResults.shared.executionLog, ["A", "B", "C"])
+            XCTAssertEqual(TestResults.shared.executionLog, ["A", "/A", "B", "/B", "C", "/C"])
             // XCTAssertEqual(TestResults.shared.results?[taskA], "A")
             exp.fulfill()
         }
@@ -78,23 +81,26 @@ class WorkerTests: XCTestCase {
         let expExec = expectation(description: "Execution")
         TestResults.shared.executionLog.removeAll()
 
+        let exitTask = TestTask(name: "Exit")
+        let cTask = TestTask(name: "C")
+
         MainTask().solve { (result) in
             XCTAssertEqual(result, "Main")
             expMain.fulfill()
         }
 
-        ExitTask().solve { (result) in
+        exitTask.solve { (result) in
             XCTAssertEqual(result, "Exit")
             expExit.fulfill()
         }
 
-        TestTask(name: "C").solve { (result) in
+        cTask.solve { (result) in
             XCTAssertEqual(result, "C")
             expC.fulfill()
         }
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {
-            XCTAssertEqual(TestResults.shared.executionLog, ["A", "B", "C", "Main", "Exit"])
+            XCTAssertEqual(TestResults.shared.executionLog, ["A", "/A", "B", "/B", "C", "/C", "Main", "/Main", "Exit", "/Exit"])
             expExec.fulfill()
         })
 
@@ -107,10 +113,10 @@ class WorkerTests: XCTestCase {
         TestResults.shared.executionLog.removeAll()
 
         MainTask().solve { (result) in
-            XCTAssertEqual(TestResults.shared.executionLog, ["A", "B", "C", "Main", "Exit"])
+            XCTAssertEqual(TestResults.shared.executionLog, ["A", "/A", "B", "/B", "C", "/C", "Main", "/Main", "Exit", "/Exit"])
             exp.fulfill()
         }
-        
+
         waitForExpectations(timeout: 5, handler: nil)
     }
 
@@ -132,6 +138,8 @@ class WorkerTests: XCTestCase {
     
     static var allTests = [
         ("testWithNoDependencies", testWithNoDependencies),
+        ("testWithPrecessorDependency", testWithPrecessorDependency),
+        ("testWithSuccessorDependency", testWithSuccessorDependency),
         ("testWithDependencies", testWithDependencies),
         ("testExecutionDeduplication", testExecutionDeduplication),
         ("testMixSuccessorsAndPrecessors", testMixSuccessorsAndPrecessors),

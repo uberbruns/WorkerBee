@@ -66,9 +66,17 @@ class TestWorker: Worker<TestTask> {
     
     
     override func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [unowned self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [unowned self] in
             TestResults.shared.executionLog.append(self.task.name)
             report(.done, self.task.name)
+        }
+    }
+    
+    
+    override func cleanUp(report: @escaping (Report) -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [unowned self] in
+            TestResults.shared.executionLog.append("/" + self.task.name)
+            report(.done)
         }
     }
 }
@@ -95,13 +103,19 @@ class MainWorker: Worker<MainTask> {
     public required init(task: MainTask) {
         super.init(task: task)
         add(dependency: TestTask(name: "B", precessors: ["A"], successors: ["C"]), as: .precessor)
-        add(dependency: ExitTask(), as: .successor)
+        add(dependency: TestTask(name: "Exit"), as: .successor)
     }
     
     
     override func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void) {
         TestResults.shared.executionLog.append("Main")
         report(.done, "Main")
+    }
+    
+    
+    override func cleanUp(report: @escaping (Report) -> Void) {
+        TestResults.shared.executionLog.append("/Main")
+        report(.done)
     }
 }
 
@@ -134,37 +148,6 @@ class SubWorker: Worker<SubTask> {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             TestResults.shared.executionLog.append("SubTask")
             report(.done, "SubTask")
-        }
-    }
-}
-
-
-
-struct ExitTask: Task {
-    
-    typealias Result = String
-    
-    let name = "Exit"
-    let hashValue = ExitTask.typeHash
-    private static let typeHash = Int(arc4random())
-    
-    func createWorker() -> Any {
-        return ExitWorker(task: self)
-    }
-}
-
-
-
-class ExitWorker: Worker<ExitTask> {
-    
-    public required init(task: ExitTask) {
-        super.init(task: task)
-    }
-    
-    override func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            TestResults.shared.executionLog.append("Exit")
-            report(.done, "Exit")
         }
     }
 }

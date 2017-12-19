@@ -23,6 +23,11 @@ class WorkStep {
         self.dependencies = Set()
         self.state = .unresolved
     }
+    
+    
+    func waits(for workStep: WorkStep) {
+        dependencies.insert(workStep)
+    }
 }
 
 
@@ -56,8 +61,8 @@ extension WorkStep {
 extension WorkStep {
     
     enum Phase: Int {
-        case main
-        case callCompletionHandler
-        case cleanUp
+        case main = 0
+        case cleanUp = 1
+        case callCompletionHandler = 2
     }
 }

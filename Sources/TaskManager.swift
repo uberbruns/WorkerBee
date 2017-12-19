@@ -10,29 +10,32 @@ import Foundation
 
 
 final public class TaskManager {
-
+    
     // MARK: - Manager -
     // MARK: Properties
-
+    
     public static let shared = TaskManager()
     private var isResolvedScheduled = false
-
+    
     let workSteps = WorkSteps()
     let workers = Workers()
-
+    
     
     // MARK: Life-Cycle
-
+    
     private init() { }
     
     
     // MARK: - WorkSteps -
     // MARK: Add
-
-    private func addAsWorkSteps(task: AnyTask) {
+    
+    private func addTaskAsWorkSteps(task: AnyTask) {
         let main = workSteps[task: task, phase: .main] ?? workSteps.insert(task: task, phase: .main)
+        let cleanUp = workSteps[task: task, phase: .cleanUp] ?? workSteps.insert(task: task, phase: .cleanUp)
         let callCompletionHandler = workSteps[task: task, phase: .callCompletionHandler] ?? workSteps.insert(task: task, phase: .callCompletionHandler)
-        callCompletionHandler.dependencies.insert(main)
+        
+        cleanUp.waits(for: main)
+        callCompletionHandler.waits(for: cleanUp)
     }
     
     
@@ -40,7 +43,7 @@ final public class TaskManager {
         // Resolve dependencies
         func recursiveAddDependencies(worker: AnyWorker) {
             for dependency in worker.dependencies {
-                addAsWorkSteps(task: dependency.original)
+                addTaskAsWorkSteps(task: dependency.original)
                 let worker = workers[dependency.original]
                 if worker.result.isNone {
                     let depWorker = workers[dependency.original]
@@ -52,15 +55,15 @@ final public class TaskManager {
         }
         recursiveAddDependencies(worker: worker)
     }
-
+    
     
     // MARK: Find
-
+    
     private func findWorkersWithUnresolvedDependencies() -> [AnyWorker] {
         var result = [AnyWorker]()
         for (_, workStep) in self.workSteps.steps {
             guard workStep.phase == .main else { continue }
-
+            
             let worker = workers[workStep]
             if worker.dependencyState == .unresolved {
                 result.append(worker)
@@ -68,15 +71,15 @@ final public class TaskManager {
         }
         return result
     }
-
     
-    private func findUnresolvedWorkSteps() -> [WorkStep] {
+    
+    private func findUnresolvedMainWorkSteps() -> [WorkStep] {
         return self.workSteps.values.filter {
             let worker = workers[$0]
-            return worker.dependencyState == .added && $0.state == .unresolved
+            return worker.dependencyState == .added && $0.state == .unresolved  && $0.phase == .main
         }
     }
-
+    
     
     private func findWorkStepsToExecute() -> [WorkStep] {
         return self.workSteps.values.filter {
@@ -84,7 +87,7 @@ final public class TaskManager {
             return worker.dependencyState == .interlinked && $0.state == .unresolved
         }
     }
-
+    
     
     private func findCompletionHandlersToCall() -> [WorkStep] {
         return self.workSteps.values.filter {
@@ -92,7 +95,7 @@ final public class TaskManager {
             return $0.state == .resolved && worker.completionHandler.isEmpty
         }
     }
-
+    
     
     private func findCompletedWorkSteps() -> [WorkStep] {
         return self.workSteps.values.filter {
@@ -100,8 +103,8 @@ final public class TaskManager {
             return $0.state == .resolved && worker.completionHandler.isEmpty
         }
     }
-
-
+    
+    
     private func doWorkStepsExist(dependingOn workStep: WorkStep) -> Bool {
         for workStep in workSteps.values {
             for depWorkStep in workStep.dependencies {
@@ -112,7 +115,7 @@ final public class TaskManager {
         }
         return false
     }
-
+    
     
     // MARK: - Main -
     
@@ -126,7 +129,7 @@ final public class TaskManager {
             completionBlock(finalResult)
         }
         
-        addAsWorkSteps(task: task)
+        addTaskAsWorkSteps(task: task)
         
         if let callCompletionHandler = workSteps[task: task, phase: .callCompletionHandler] {
             workers[callCompletionHandler].completionHandler.append(completionHandler)
@@ -134,8 +137,8 @@ final public class TaskManager {
         
         setNeedsResolve()
     }
-
-
+    
+    
     private func setNeedsResolve() {
         if isResolvedScheduled == false {
             isResolvedScheduled = true
@@ -145,42 +148,48 @@ final public class TaskManager {
             }
         }
     }
-
+    
     
     private func resolve() {
         print("# Start resolve iteration ...\n")
         
         // Add Workers Dependencies As WorkSteps
+        workSteps.debugPrint()
         print("Add Workers Dependencies As WorkSteps ...\n")
-
+        
         for worker in findWorkersWithUnresolvedDependencies() {
             addWorkersDependenciesAsWorkSteps(worker)
         }
         
         // Interlink dependencies
+        workSteps.debugPrint()
         print("Interlink Dependencies ...\n")
-
-        for thisWorkStep in findUnresolvedWorkSteps() {
-            let worker = workers[thisWorkStep]
+        
+        for thisMainStep in findUnresolvedMainWorkSteps() {
+            let worker = workers[thisMainStep]
             
             for dependency in worker.dependencies {
-                if dependency.relationship == .precessor && thisWorkStep.phase == .main {
-                    let precedingStep = workSteps[task: dependency.original, phase: .callCompletionHandler]!
-                    thisWorkStep.dependencies.insert(precedingStep)
-
-                } else if dependency.relationship == .successor && thisWorkStep.phase == .main {
-                    let mainWorkStep = thisWorkStep
-                    let callCompletionHandlerWorkStep = workSteps[task: thisWorkStep.original, phase: .callCompletionHandler]!
-                    let successorWorkStep = workSteps[task: dependency.original, phase: .main]!
+                if dependency.relationship == .precessor {
+                    // This 'Main' step waits for preceding 'CallCompletionHandler' step
+                    let precedingCallCompletionHandler = workSteps[task: dependency.original, phase: .callCompletionHandler]!
+                    thisMainStep.waits(for: precedingCallCompletionHandler)
                     
-                    callCompletionHandlerWorkStep.dependencies.insert(successorWorkStep)
-                    successorWorkStep.dependencies.insert(mainWorkStep)
+                } else if dependency.relationship == .successor {
+                    // This 'CallCompletionHandler' step waits for successors 'CallCompletionHandler'
+                    let thisCallCompletionHandler = workSteps[task: thisMainStep.original, phase: .callCompletionHandler]!
+                    let successorsCallCompletionHandler = workSteps[task: dependency.original, phase: .callCompletionHandler]!
+                    thisCallCompletionHandler.waits(for: successorsCallCompletionHandler)
+                    
+                    // The successors 'Main' step waits for this 'CleanUp' step
+                    let successorMain = workSteps[task: dependency.original, phase: .main]!
+                    let thisCleanUpStep = workSteps[task: thisMainStep.original, phase: .cleanUp]!
+                    successorMain.waits(for: thisCleanUpStep)
                 }
             }
+            
             worker.dependencyState = .interlinked
         }
         
-
         // Execute WorkSteps
         workSteps.debugPrint()
         print("Execute WorkSteps ...\n")
@@ -204,10 +213,10 @@ final public class TaskManager {
                     }
                 }
             }
-
+            
             // All dependencies are resolved, start executing ...
             thisWorkStep.state = .executing
-
+            
             switch thisWorkStep.phase {
             case .main:
                 worker.main(results: results, report: { [unowned self] (report, result) in
@@ -226,7 +235,7 @@ final public class TaskManager {
                 worker.callCompletionHandlers()
                 thisWorkStep.state = .resolved
                 self.setNeedsResolve()
-
+                
             case .cleanUp:
                 worker.cleanUp(report: { (report) in
                     switch report {
@@ -238,42 +247,43 @@ final public class TaskManager {
                     self.setNeedsResolve()
                     return
                 })
-        }
-
-        // Remove resolved tasks
-        workSteps.debugPrint()
-        print("Remove Completed WorkSteps ...\n")
-
-        var repeatCompletedTasksCleanUp = true
-        while repeatCompletedTasksCleanUp {
-            repeatCompletedTasksCleanUp = false
-            for thisWorkStep in findCompletedWorkSteps() {
-                if doWorkStepsExist(dependingOn: thisWorkStep) == false {
-                    workSteps.remove(thisWorkStep)
-                    repeatCompletedTasksCleanUp = true
+            }
+            
+            // Remove resolved tasks
+            workSteps.debugPrint()
+            print("Remove Completed WorkSteps ...\n")
+            
+            var repeatCompletedTasksCleanUp = true
+            while repeatCompletedTasksCleanUp {
+                repeatCompletedTasksCleanUp = false
+                for thisWorkStep in findCompletedWorkSteps() {
+                    if doWorkStepsExist(dependingOn: thisWorkStep) == false {
+                        workSteps.remove(thisWorkStep)
+                        repeatCompletedTasksCleanUp = true
+                    }
                 }
             }
+            
+            // Remove unneeded workers
+            let workStepsHashes = Set(workSteps.values.map({ $0.original.hashValue }))
+            workers.removeUnneededWorkers(forWorkStepsHashes: workStepsHashes)
+            
+            // Resolve iteration ended
+            workSteps.debugPrint()
         }
-
-        // Remove unneeded workers
-        let workStepsHashes = Set(workSteps.values.map({ $0.original.hashValue }))
-        workers.removeUnneededWorkers(forWorkStepsHashes: workStepsHashes)
-        
-        // Resolve iteration ended
-        workSteps.debugPrint()
     }
 }
 
 
 extension TaskManager {
-
+    
     class WorkSteps {
         fileprivate var steps: [Int: WorkStep] {
             didSet {
                 debugPrint()
             }
         }
-
+        
         
         var values: Dictionary<Int, WorkStep>.Values {
             return steps.values
@@ -295,7 +305,7 @@ extension TaskManager {
             extendHash(&hash, with: phase.rawValue)
             return steps[hash]
         }
-
+        
         
         @discardableResult func insert(task: AnyTask, phase: WorkStep.Phase) -> WorkStep {
             let workStep = WorkStep(original: task, phase: phase)
@@ -303,12 +313,12 @@ extension TaskManager {
             steps[hash] = workStep
             return workStep
         }
-
+        
         
         func remove(_ workStep: WorkStep) {
             steps.removeValue(forKey: workStep.hashValue)
         }
-
+        
         
         func debugPrint() {
             let comp = steps.values.sorted { (a, b) -> Bool in
