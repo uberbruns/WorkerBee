@@ -10,7 +10,7 @@ import Foundation
 
 
 class Workers {
-    private var workers = [Int: AnyWorker]()
+    var workers = [Int: AnyWorker]()
 
     init() { }
     
@@ -31,11 +31,15 @@ class Workers {
     }
 
     
-    func removeUnneededWorkers(forWorkStepsHashes workStepsHashes: Set<Int>) {
+    func removeUnneededWorkers(keep workStepsHashes: Set<Int>) {
         for (key, _) in workers {
             if !workStepsHashes.contains(key) {
                 workers.removeValue(forKey: key)
             }
+        }
+        
+        if workStepsHashes.count != workers.count {
+            fatalError()
         }
     }
 }

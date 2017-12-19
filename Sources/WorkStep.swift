@@ -26,7 +26,9 @@ class WorkStep {
     
     
     func waits(for workStep: WorkStep) {
-        dependencies.insert(workStep)
+        if !dependencies.contains(workStep) {
+            dependencies.insert(workStep)
+        }
     }
 }
 

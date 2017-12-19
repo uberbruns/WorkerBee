@@ -19,7 +19,9 @@ class WorkerTests: XCTestCase {
         TestTask(name: "A").solve { (result) in
             XCTAssertEqual(TestResults.shared.executionLog, ["A", "/A"])
             XCTAssertEqual(result, "A")
-            exp.fulfill()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                exp.fulfill()
+            }
         }
         
         waitForExpectations(timeout: 5, handler: nil)
@@ -35,7 +37,9 @@ class WorkerTests: XCTestCase {
         
         task.solve { (result) in
             XCTAssertEqual(TestResults.shared.executionLog, ["A", "/A", "B", "/B"])
-            exp.fulfill()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                exp.fulfill()
+            }
         }
         
         waitForExpectations(timeout: 5, handler: nil)
@@ -51,10 +55,12 @@ class WorkerTests: XCTestCase {
 
         task.solve { (result) in
             XCTAssertEqual(TestResults.shared.executionLog, ["A", "/A", "B", "/B"])
-            exp.fulfill()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                exp.fulfill()
+            }
         }
         
-        waitForExpectations(timeout: 5, handler: nil)
+        waitForExpectations(timeout: 3, handler: nil)
     }
     
     
@@ -67,7 +73,9 @@ class WorkerTests: XCTestCase {
         task.solve { (result) in
             XCTAssertEqual(TestResults.shared.executionLog, ["A", "/A", "B", "/B", "C", "/C"])
             // XCTAssertEqual(TestResults.shared.results?[taskA], "A")
-            exp.fulfill()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                exp.fulfill()
+            }
         }
         
         waitForExpectations(timeout: 5, handler: nil)
@@ -114,7 +122,9 @@ class WorkerTests: XCTestCase {
 
         MainTask().solve { (result) in
             XCTAssertEqual(TestResults.shared.executionLog, ["A", "/A", "B", "/B", "C", "/C", "Main", "/Main", "Exit", "/Exit"])
-            exp.fulfill()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                exp.fulfill()
+            }
         }
 
         waitForExpectations(timeout: 5, handler: nil)
@@ -128,7 +138,9 @@ class WorkerTests: XCTestCase {
         MainTask().solve { (result) in
             DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {
                 XCTAssertEqual(TaskManager.shared.workSteps.isEmpty, true)
-                exp.fulfill()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    exp.fulfill()
+                }
             })
         }
         

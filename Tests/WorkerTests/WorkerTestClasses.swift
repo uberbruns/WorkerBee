@@ -34,6 +34,9 @@ struct TestTask: Task {
     init(name: String, precessors: [String] = [], successors: [String] = []) {
         var hashValue = TestResults.shared.randomInt
         extendHash(&hashValue, with: name)
+        extendHash(&hashValue, with: precessors.joined(separator: "-"))
+        extendHash(&hashValue, with: successors.joined(separator: "-"))
+        
         self.hashValue = hashValue
         self.name = name
         self.precessors = precessors
