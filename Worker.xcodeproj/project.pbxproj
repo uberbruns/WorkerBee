@@ -38,6 +38,10 @@
 		3DF426081FE842F500C8BBBC /* Hashing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF426061FE8428700C8BBBC /* Hashing.swift */; };
 		3DF426091FE842F600C8BBBC /* Hashing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF426061FE8428700C8BBBC /* Hashing.swift */; };
 		3DF4260A1FE842F600C8BBBC /* Hashing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF426061FE8428700C8BBBC /* Hashing.swift */; };
+		3DF4260C1FE874B700C8BBBC /* Workers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF4260B1FE874B700C8BBBC /* Workers.swift */; };
+		3DF4260D1FE876D700C8BBBC /* Workers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF4260B1FE874B700C8BBBC /* Workers.swift */; };
+		3DF4260E1FE876D800C8BBBC /* Workers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF4260B1FE874B700C8BBBC /* Workers.swift */; };
+		3DF4260F1FE876D800C8BBBC /* Workers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF4260B1FE874B700C8BBBC /* Workers.swift */; };
 		52D6D9871BEFF229002C0205 /* Worker.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 52D6D97C1BEFF229002C0205 /* Worker.framework */; };
 		8933C78E1EB5B82C000D00A4 /* WorkerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8933C7891EB5B82A000D00A4 /* WorkerTests.swift */; };
 		8933C78F1EB5B82C000D00A4 /* WorkerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8933C7891EB5B82A000D00A4 /* WorkerTests.swift */; };
@@ -79,6 +83,7 @@
 		3DF425F91FDEE3FF00C8BBBC /* WorkerTestClasses.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkerTestClasses.swift; sourceTree = "<group>"; };
 		3DF426011FE827B500C8BBBC /* Dependency+Results.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Dependency+Results.swift"; sourceTree = "<group>"; };
 		3DF426061FE8428700C8BBBC /* Hashing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hashing.swift; sourceTree = "<group>"; };
+		3DF4260B1FE874B700C8BBBC /* Workers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workers.swift; sourceTree = "<group>"; };
 		52D6D97C1BEFF229002C0205 /* Worker.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Worker.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		52D6D9861BEFF229002C0205 /* Worker-iOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Worker-iOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		52D6D9E21BEFFF6E002C0205 /* Worker.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Worker.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -190,6 +195,7 @@
 				3DF425E21FDEE1EE00C8BBBC /* Worker.swift */,
 				3DF425E11FDEE1EE00C8BBBC /* WorkStep.swift */,
 				3DF426061FE8428700C8BBBC /* Hashing.swift */,
+				3DF4260B1FE874B700C8BBBC /* Workers.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -505,6 +511,7 @@
 				3DF425ED1FDEE1EE00C8BBBC /* Worker.swift in Sources */,
 				3DF425F51FDEE1EE00C8BBBC /* Task.swift in Sources */,
 				3DF425E91FDEE1EE00C8BBBC /* WorkStep.swift in Sources */,
+				3DF4260C1FE874B700C8BBBC /* Workers.swift in Sources */,
 				3DF426021FE827B500C8BBBC /* Dependency+Results.swift in Sources */,
 				3DF426071FE8428700C8BBBC /* Hashing.swift in Sources */,
 			);
@@ -528,6 +535,7 @@
 				3DF425F31FDEE1EE00C8BBBC /* Dependency.swift in Sources */,
 				3DF425EF1FDEE1EE00C8BBBC /* Worker.swift in Sources */,
 				3DF425F71FDEE1EE00C8BBBC /* Task.swift in Sources */,
+				3DF4260E1FE876D800C8BBBC /* Workers.swift in Sources */,
 				3DF425EB1FDEE1EE00C8BBBC /* WorkStep.swift in Sources */,
 				3DF426091FE842F600C8BBBC /* Hashing.swift in Sources */,
 			);
@@ -542,6 +550,7 @@
 				3DF425F41FDEE1EE00C8BBBC /* Dependency.swift in Sources */,
 				3DF425F01FDEE1EE00C8BBBC /* Worker.swift in Sources */,
 				3DF425F81FDEE1EE00C8BBBC /* Task.swift in Sources */,
+				3DF4260F1FE876D800C8BBBC /* Workers.swift in Sources */,
 				3DF425EC1FDEE1EE00C8BBBC /* WorkStep.swift in Sources */,
 				3DF4260A1FE842F600C8BBBC /* Hashing.swift in Sources */,
 			);
@@ -556,6 +565,7 @@
 				3DF425F21FDEE1EE00C8BBBC /* Dependency.swift in Sources */,
 				3DF425EE1FDEE1EE00C8BBBC /* Worker.swift in Sources */,
 				3DF425F61FDEE1EE00C8BBBC /* Task.swift in Sources */,
+				3DF4260D1FE876D700C8BBBC /* Workers.swift in Sources */,
 				3DF425EA1FDEE1EE00C8BBBC /* WorkStep.swift in Sources */,
 				3DF426081FE842F500C8BBBC /* Hashing.swift in Sources */,
 			);

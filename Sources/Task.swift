@@ -12,7 +12,7 @@ import Foundation
 public protocol AnyTask {
     var name: String { get }
     var hashValue: Int { get }
-    func createWorker() -> AnyWorker
+    func createWorker() -> Any
 }
 
 

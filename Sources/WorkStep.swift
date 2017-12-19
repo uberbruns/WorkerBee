@@ -9,49 +9,19 @@
 import Foundation
 
 
-private class WorkForce {
-    static let shared = WorkForce()
-    var worker = [Int: AnyWorker]()
-    private init() { }
-}
-
-
 class WorkStep {
     
     let original: AnyTask
     
-    var result: TaskResult
-    var dependencies: Set<TypeErasedTask>
+    var dependencies: Set<WorkStep>
     var state: State
     var phase: Phase
-
-    var worker: AnyWorker {
-        if let worker = WorkForce.shared.worker[hashValue] {
-            return worker
-        } else {
-            let newWorker = original.createWorker()
-            WorkForce.shared.worker[hashValue] = newWorker
-            return newWorker
-        }
-    }
-    
 
     init(original: AnyTask, phase: Phase) {
         self.original = original
         self.phase = phase
-        self.result = .none
         self.dependencies = Set()
         self.state = .unresolved
-    }
-    
-    
-    deinit {
-        removeWorker()
-    }
-    
-    
-    func removeWorker() {
-        WorkForce.shared.worker.removeValue(forKey: hashValue)
     }
 }
 
@@ -78,7 +48,7 @@ extension WorkStep {
     enum State {
         case unresolved
         case executing
-        case completed
+        case resolved
     }
 }
 
@@ -89,35 +59,5 @@ extension WorkStep {
         case main
         case callCompletionHandler
         case cleanUp
-    }
-}
-
-
-extension WorkStep {
-    
-    enum TaskResult {
-        case obtained(Any?)
-        case none
-        
-        var isObtained: Bool {
-            if case .obtained = self {
-                return true
-            }
-            return false
-        }
-
-        var isNone: Bool {
-            if case .none = self {
-                return true
-            }
-            return false
-        }
-
-        var obtainedResult: Any? {
-            if case .obtained(let result) = self {
-                return result
-            }
-            return nil
-        }
     }
 }

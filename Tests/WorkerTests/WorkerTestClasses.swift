@@ -14,133 +14,65 @@ class TestResults {
     static let shared = TestResults()
     var executionLog = [String]()
     var results: Dependency.Results?
+    var randomInt = Int(arc4random())
     
     private init() { }
 }
 
 
 
-struct TaskA: Task {
+struct TestTask: Task {
     
     typealias Result = String
     
-    let name = "A"
+    let name: String
+    let precessors: [String]
+    let successors: [String]
     let hashValue: Int
     
     
-    init() {
-        self.hashValue = name.hashValue
+    init(name: String, precessors: [String] = [], successors: [String] = []) {
+        var hashValue = TestResults.shared.randomInt
+        extendHash(&hashValue, with: name)
+        self.hashValue = hashValue
+        self.name = name
+        self.precessors = precessors
+        self.successors = successors
     }
     
     
-    func createWorker() -> AnyWorker {
-        return WorkerA(task: self)
+    func createWorker() -> Any {
+        return TestWorker(task: self)
     }
 }
 
 
 
-class WorkerA: Worker<TaskA> {
+class TestWorker: Worker<TestTask> {
     
-    public required init(task: TaskA) {
+    public required init(task: TestTask) {
         super.init(task: task)
+        
+        for precessor in task.precessors {
+            let dependency = TestTask(name: precessor)
+            self.add(dependency: dependency, as: .precessor)
+        }
+        
+        for successor in task.successors {
+            let dependency = TestTask(name: successor)
+            self.add(dependency: dependency, as: .successor)
+        }
     }
     
     
     override func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            TestResults.shared.executionLog.append("A")
-            report(.done, "A")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [unowned self] in
+            TestResults.shared.executionLog.append(self.task.name)
+            report(.done, self.task.name)
         }
     }
 }
 
-
-
-struct TaskB: Task {
-    
-    typealias Result = String
-    
-    let name = "B"
-    let hashValue: Int
-    
-    
-    init() {
-        self.hashValue = name.hashValue
-    }
-    
-    
-    func createWorker() -> AnyWorker {
-        return WorkerB(task: self)
-    }
-}
-
-
-
-class WorkerB: Worker<TaskB> {
-    
-    let taskA = TaskA()
-    let taskC = TaskC()
-
-    public required init(task: TaskB) {
-        super.init(task: task)
-        add(dependency: taskA, as: .precessor)
-        add(dependency: taskC, as: .successor)
-    }
-    
-    
-    override func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            TestResults.shared.executionLog.append("B")
-            TestResults.shared.results = results
-            report(.done, "B")
-        }
-    }
-    
-    
-    override func cleanUp(report: @escaping (Report) -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            TestResults.shared.executionLog.append("B (CleanUp)")
-            report(.done)
-        }
-    }
-}
-
-
-
-struct TaskC: Task {
-    
-    typealias Result = String
-    
-    let name = "C"
-    let hashValue: Int
-    
-    init() {
-        self.hashValue = name.hashValue
-    }
-    
-    
-    func createWorker() -> AnyWorker {
-        return WorkerC(task: self)
-    }
-}
-
-
-
-class WorkerC: Worker<TaskC> {
-    
-    public required init(task: TaskC) {
-        super.init(task: task)
-    }
-    
-    
-    override func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            TestResults.shared.executionLog.append("C")
-            report(.done, "C")
-        }
-    }
-}
 
 
 struct MainTask: Task {
@@ -151,7 +83,7 @@ struct MainTask: Task {
     let hashValue = MainTask.typeHash
     private static let typeHash = Int(arc4random())
     
-    func createWorker() -> AnyWorker {
+    func createWorker() -> Any {
         return MainWorker(task: self)
     }
 }
@@ -162,7 +94,7 @@ class MainWorker: Worker<MainTask> {
     
     public required init(task: MainTask) {
         super.init(task: task)
-        add(dependency: TaskB(), as: .precessor)
+        add(dependency: TestTask(name: "B", precessors: ["A"], successors: ["C"]), as: .precessor)
         add(dependency: ExitTask(), as: .successor)
     }
     
@@ -183,7 +115,7 @@ struct SubTask: Task {
     let hashValue = SubTask.typeHash
     private static let typeHash = Int(arc4random())
     
-    func createWorker() -> AnyWorker {
+    func createWorker() -> Any {
         return SubWorker(task: self)
     }
 }
@@ -194,7 +126,7 @@ class SubWorker: Worker<SubTask> {
     
     public required init(task: SubTask) {
         super.init(task: task)
-        add(dependency: TaskA(), as: .parent)
+        add(dependency: TestTask(name: "Super"), as: .parent)
     }
     
     
@@ -216,7 +148,7 @@ struct ExitTask: Task {
     let hashValue = ExitTask.typeHash
     private static let typeHash = Int(arc4random())
     
-    func createWorker() -> AnyWorker {
+    func createWorker() -> Any {
         return ExitWorker(task: self)
     }
 }

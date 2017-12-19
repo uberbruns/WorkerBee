@@ -15,32 +15,41 @@ public enum Report {
 }
 
 
-public protocol AnyWorker: class {
+protocol AnyWorker: class {
     var dependencies: Set<Dependency> { get }
+    var dependencyState: DependencyState { get set }
     var anyTask: AnyTask { get }
+    var result: TaskResult { get set }
     var completionHandler: [CompletionHandler] { get set }
 
     func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void)
+    func callCompletionHandlers()
     func cleanUp(report: @escaping (Report) -> Void)
 }
 
 
 open class Worker<T: Task>: AnyWorker {
     
-    public class var parallelWorkers: Int { return 1 }
-    
+    // External
     public private(set) var task: T
-    public var anyTask: AnyTask{ return task }
-    public private(set) var dependencies: Set<Dependency>
     
+    // External Overridable
     public var parallelChildTasks: Int { return 1 }
-    
-    public var completionHandler: [CompletionHandler]
+    public class var parallelWorkers: Int { return 1 }
+
+    // Internal
+    var completionHandler: [CompletionHandler]
+    var anyTask: AnyTask { return task }
+    private(set) var dependencies: Set<Dependency>
+    var dependencyState: DependencyState
+    var result: TaskResult
 
     
     public required init(task: T) {
         self.task = task
+        self.result = .none
         self.dependencies = []
+        self.dependencyState = .unresolved
         self.completionHandler = []
     }
     
@@ -80,9 +89,52 @@ open class Worker<T: Task>: AnyWorker {
     open func cancel(report: @escaping (Report) -> Void) {
         report(.done)
     }
+    
+    
+    func callCompletionHandlers() {
+        if let result = self.result.obtainedResult {
+            completionHandler.forEach { $0.handler(result) }
+        }
+        completionHandler.removeAll()
+    }
 }
 
 
-public struct CompletionHandler {
-    let handler: (Any?) -> ()
+struct CompletionHandler {
+    let handler: (Any) -> ()
 }
+
+
+enum DependencyState {
+    case unresolved
+    case added
+    case interlinked
+}
+
+
+enum TaskResult {
+    case obtained(Any?)
+    case none
+    
+    var isObtained: Bool {
+        if case .obtained = self {
+            return true
+        }
+        return false
+    }
+    
+    var isNone: Bool {
+        if case .none = self {
+            return true
+        }
+        return false
+    }
+    
+    var obtainedResult: Any? {
+        if case .obtained(let result) = self {
+            return result
+        }
+        return nil
+    }
+}
+
