@@ -65,6 +65,6 @@ extension WorkStep {
     enum Phase: Int {
         case main = 0
         case cleanUp = 1
-        case callCompletionHandler = 2
+        case callback = 2
     }
 }

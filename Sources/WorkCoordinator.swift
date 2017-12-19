@@ -1,5 +1,5 @@
 //
-//  TaskManager.swift
+//  WorkCoordinator.swift
 //  Worker
 //
 //  Created by Karsten Bruns on 09.12.17.
@@ -9,14 +9,16 @@
 import Foundation
 
 
-final public class TaskManager {
+final public class WorkCoordinator {
     
     // MARK: - Manager -
     // MARK: Properties
     
-    public static let shared = TaskManager()
+    public static let shared = WorkCoordinator()
     private var isResolvedScheduled = false
-    
+
+    var printLog = false
+
     let workSteps = WorkSteps()
     let workers = Workers()
     
@@ -34,9 +36,9 @@ final public class TaskManager {
         
         let main = workSteps.insert(task: task, phase: .main)
         let cleanUp = workSteps[task: task, phase: .cleanUp] ?? workSteps.insert(task: task, phase: .cleanUp)
-        let callCompletionHandler = workSteps[task: task, phase: .callCompletionHandler] ?? workSteps.insert(task: task, phase: .callCompletionHandler)
+        let invokeCallback = workSteps[task: task, phase: .callback] ?? workSteps.insert(task: task, phase: .callback)
         cleanUp.waits(for: main)
-        callCompletionHandler.waits(for: cleanUp)
+        invokeCallback.waits(for: cleanUp)
     }
     
     
@@ -44,7 +46,7 @@ final public class TaskManager {
         // Resolve dependencies
         func recursiveAddDependencies(worker: AnyWorker) {
             guard worker.dependencyState == .unresolved else {
-                print(worker.anyTask.name)
+                debugLog(worker.anyTask.name)
                 return
             }
             
@@ -116,7 +118,7 @@ final public class TaskManager {
     public func solve<T: Task>(task: T, then completionBlock: @escaping (T.Result) -> Void) {
         let completionHandler = CompletionHandler { (result) in
             guard let finalResult = result as? T.Result else {
-                print("The following result does not match the expected type (\(T.Result.self))")
+                self.debugLog("The following result does not match the expected type (\(T.Result.self))")
                 dump(result)
                 fatalError()
             }
@@ -125,8 +127,8 @@ final public class TaskManager {
         
         addTaskAsWorkStepsIfNeeded(task: task)
         
-        if let callCompletionHandler = workSteps[task: task, phase: .callCompletionHandler] {
-            workers[callCompletionHandler].completionHandler.append(completionHandler)
+        if let invokeCallback = workSteps[task: task, phase: .callback] {
+            workers[invokeCallback].completionHandler.append(completionHandler)
         }
         
         setNeedsResolve()
@@ -145,38 +147,73 @@ final public class TaskManager {
     
     
     private func resolve() {
-        print("# Start resolve iteration ...\n")
+        debugLog("# Start resolve iteration ...\n")
         
         // Add workers dependencies to work steps
-        workSteps.debugPrint()
-        print("Add Workers Dependencies As WorkSteps ...\n")
+        workSteps.printDebugInfo()
+        debugLog("Add Workers Dependencies As WorkSteps ...\n")
         
         forEachWorkerWithUnresolvedDependencies { worker in
             addWorkersDependenciesAsWorkSteps(worker)
         }
         
         // Link dependencies
-        workSteps.debugPrint()
-        print("Link Dependencies ...\n")
+        workSteps.printDebugInfo()
+        debugLog("Link Dependencies ...\n")
         
-        forEachWorkerWithUnlinkedDependencies() { worker in
+        forEachWorkerWithUnlinkedDependencies { worker in
+            // Handle parent dependencies
+            var parentCleanUpSteps = [WorkStep]()
+            for dependency in worker.dependencies where dependency.relationship == .parent {
+                // Simplify names
+                let childTask = worker.anyTask
+                let parentTask = dependency.original
+                
+                // The child's 'MainStep' step waits for parents 'MainStep' step
+                let childMainStep = workSteps[task: childTask, phase: .main]!
+                let parentMainStep = workSteps[task: parentTask, phase: .main]!
+                childMainStep.waits(for: parentMainStep)
+                
+                // The parent's 'CleanUp' step waits for the child's 'CleanUp' step
+                let childCleanUp = workSteps[task: childTask, phase: .cleanUp]!
+                let parentCleanUp = workSteps[task: parentTask, phase: .cleanUp]!
+                parentCleanUp.waits(for: childCleanUp)
+                
+                // Fill parent clean up steps array
+                parentCleanUpSteps.append(parentCleanUp)
+            }
+            
+            // Handle remaining dependencies
             for dependency in worker.dependencies {
                 if dependency.relationship == .precessor {
-                    // This 'Main' step waits for preceding 'CallCompletionHandler' step
-                    let thisMainStep = workSteps[task: worker.anyTask, phase: .main]!
-                    let precedingCallCompletionHandler = workSteps[task: dependency.original, phase: .callCompletionHandler]!
-                    thisMainStep.waits(for: precedingCallCompletionHandler)
+                    // Simplify names
+                    let thisTask = worker.anyTask
+                    let precessorsTask = dependency.original
+
+                    // This 'MainStep' step waits for preceding 'Callback' step
+                    let thisMainStep = workSteps[task: thisTask, phase: .main]!
+                    let precessorsCallback = workSteps[task: precessorsTask, phase: .callback]!
+                    thisMainStep.waits(for: precessorsCallback)
                     
                 } else if dependency.relationship == .successor {
-                    // This 'CallCompletionHandler' step waits for successors 'CallCompletionHandler'
-                    let thisCallCompletionHandler = workSteps[task: worker.anyTask, phase: .callCompletionHandler]!
-                    let successorsCallCompletionHandler = workSteps[task: dependency.original, phase: .callCompletionHandler]!
-                    thisCallCompletionHandler.waits(for: successorsCallCompletionHandler)
+                    // Simplify names
+                    let thisTask = worker.anyTask
+                    let successorTask = dependency.original
+
+                    // This 'Callback' step waits for successors 'Callback'
+                    let thisCallback = workSteps[task: thisTask, phase: .callback]!
+                    let successorsCallback = workSteps[task: successorTask, phase: .callback]!
+                    thisCallback.waits(for: successorsCallback)
                     
-                    // The successors 'Main' step waits for this 'CleanUp' step
-                    let successorMain = workSteps[task: dependency.original, phase: .main]!
-                    let thisCleanUpStep = workSteps[task: worker.anyTask, phase: .cleanUp]!
-                    successorMain.waits(for: thisCleanUpStep)
+                    // The successor's 'MainStep' step waits for this 'CleanUp' step
+                    let successorsMainStep = workSteps[task: successorTask, phase: .main]!
+                    let thisCleanUp = workSteps[task: thisTask, phase: .cleanUp]!
+                    successorsMainStep.waits(for: thisCleanUp)
+                    
+                    // Parents `CleanUp` steps wait for successors 'Callback'
+                    for parentCleanUp in parentCleanUpSteps {
+                        parentCleanUp.waits(for: successorsCallback)
+                    }
                 }
             }
             
@@ -184,10 +221,10 @@ final public class TaskManager {
         }
         
         // Execute WorkSteps
-        workSteps.debugPrint()
-        print("Execute WorkSteps ...\n")
+        workSteps.printDebugInfo()
+        debugLog("Execute WorkSteps ...\n")
         
-        forEachWorkStepReadyToExecute() { thisWorkStep in
+        forEachWorkStepReadyToExecute { thisWorkStep in
             let worker = workers[thisWorkStep]
             var results = Dependency.Results()
             
@@ -213,41 +250,31 @@ final public class TaskManager {
             switch thisWorkStep.phase {
             case .main:
                 worker.main(results: results, report: { [unowned self] (report, result) in
-                    switch report {
-                    case .done:
-                        worker.result = .obtained(result)
-                        thisWorkStep.state = .resolved
-                        thisWorkStep.dependencies.removeAll()
-                    default:
-                        fatalError("Case not yet implemented")
-                    }
+                    worker.result = .obtained(result)
+                    thisWorkStep.state = .resolved
+                    thisWorkStep.dependencies.removeAll()
                     self.setNeedsResolve()
                     return
                 })
                 
-            case .callCompletionHandler:
-                worker.callCompletionHandlers()
+            case .callback:
+                worker.invokeCallbacks()
                 thisWorkStep.state = .resolved
                 thisWorkStep.dependencies.removeAll()
                 self.setNeedsResolve()
                 
             case .cleanUp:
                 worker.cleanUp(report: { (report) in
-                    switch report {
-                    case .done:
-                        thisWorkStep.state = .resolved
-                        thisWorkStep.dependencies.removeAll()
-                    default:
-                        fatalError("Case not yet implemented")
-                    }
+                    thisWorkStep.state = .resolved
+                    thisWorkStep.dependencies.removeAll()
                     self.setNeedsResolve()
                     return
                 })
             }
             
             // Remove resolved tasks
-            workSteps.debugPrint()
-            print("Remove Completed WorkSteps ...\n")
+            workSteps.printDebugInfo()
+            debugLog("Remove Completed WorkSteps ...\n")
             
             var repeatCompletedTasksCleanUp = true
             while repeatCompletedTasksCleanUp {
@@ -265,75 +292,7 @@ final public class TaskManager {
             workers.removeUnneededWorkers(keep: validWorkStepsHashValues)
             
             // Resolve iteration ended
-            workSteps.debugPrint()
-        }
-    }
-}
-
-
-extension TaskManager {
-    
-    class WorkSteps {
-        fileprivate var steps: [Int: WorkStep] {
-            didSet {
-                debugPrint()
-            }
-        }
-        
-        
-        var values: Dictionary<Int, WorkStep>.Values {
-            return steps.values
-        }
-        
-        
-        var isEmpty: Bool {
-            return steps.isEmpty
-        }
-        
-        
-        init() {
-            self.steps = [Int: WorkStep]()
-        }
-        
-        
-        subscript(task task: AnyTask, phase phase: WorkStep.Phase) -> WorkStep? {
-            var hash = task.hashValue
-            extendHash(&hash, with: phase.rawValue)
-            return steps[hash]
-        }
-        
-        
-        @discardableResult func insert(task: AnyTask, phase: WorkStep.Phase) -> WorkStep {
-            let workStep = WorkStep(original: task, phase: phase)
-            let hash = workStep.hashValue
-            steps[hash] = workStep
-            return workStep
-        }
-        
-        
-        func remove(_ workStep: WorkStep) {
-            steps.removeValue(forKey: workStep.hashValue)
-        }
-        
-        
-        func debugPrint() {
-            let comp = steps.values.sorted { (a, b) -> Bool in
-                if a.original.name != b.original.name {
-                    return a.original.name < b.original.name
-                } else {
-                    return a.phase.rawValue < b.phase.rawValue
-                }
-            }
-            let lines = comp.map({ (step: WorkStep) -> String in
-                let dependencies = step.dependencies.map({ "\($0.original.name) (\($0.phase))" })
-                return "\(step.original.name) (\(step.phase)); \(step.state); [\(dependencies.joined(separator: ", "))]"
-            })
-            if lines.isEmpty {
-                print("No Work Steps")
-            } else {
-                print(lines.joined(separator: "\n"))
-            }
-            print("")
+            workSteps.printDebugInfo()
         }
     }
 }
@@ -342,7 +301,7 @@ extension TaskManager {
 
 extension Task {
     func solve(then completionBlock: @escaping (Self.Result) -> Void) {
-        TaskManager.shared.solve(task: self, then: completionBlock)
+        WorkCoordinator.shared.solve(task: self, then: completionBlock)
     }
 }
 

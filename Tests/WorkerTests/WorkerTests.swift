@@ -82,41 +82,25 @@ class WorkerTests: XCTestCase {
     }
     
     
-    func testExecutionDeduplication() {
-        let expMain = expectation(description: "Main")
-        let expExit = expectation(description: "Exit")
-        let expC    = expectation(description: "C")
-        let expExec = expectation(description: "Execution")
+    func testWithParentDependencies() {
+        let exp = expectation(description: "")
         TestResults.shared.executionLog.removeAll()
-
-        let exitTask = TestTask(name: "Exit")
-        let cTask = TestTask(name: "C")
-
-        MainTask().solve { (result) in
-            XCTAssertEqual(result, "Main")
-            expMain.fulfill()
-        }
-
-        exitTask.solve { (result) in
-            XCTAssertEqual(result, "Exit")
-            expExit.fulfill()
-        }
-
-        cTask.solve { (result) in
-            XCTAssertEqual(result, "C")
-            expC.fulfill()
+        TestResults.shared.results = nil
+        
+        let task = TestTask(name: "B", successors: ["C"], parents: ["A"])
+        
+        task.solve { (result) in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                XCTAssertEqual(TestResults.shared.executionLog, ["A", "B", "/B", "C", "/C", "/A"])
+                exp.fulfill()
+            }
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {
-            XCTAssertEqual(TestResults.shared.executionLog, ["A", "/A", "B", "/B", "C", "/C", "Main", "/Main", "Exit", "/Exit"])
-            expExec.fulfill()
-        })
-
-        wait(for: [expMain, expExit, expC, expExec], timeout: 3)
+        waitForExpectations(timeout: 5, handler: nil)
     }
 
 
-    func testMixSuccessorsAndPrecessors() {
+    func testWithComplexDependencies() {
         let exp = expectation(description: "")
         TestResults.shared.executionLog.removeAll()
 
@@ -131,13 +115,47 @@ class WorkerTests: XCTestCase {
     }
 
     
+    func testExecutionDeduplication() {
+        let expMain = expectation(description: "Main")
+        let expExit = expectation(description: "Exit")
+        let expC    = expectation(description: "C")
+        let expExec = expectation(description: "Execution")
+        TestResults.shared.executionLog.removeAll()
+        
+        let exitTask = TestTask(name: "Exit")
+        let cTask = TestTask(name: "C")
+        
+        MainTask().solve { (result) in
+            XCTAssertEqual(result, "Main")
+            expMain.fulfill()
+        }
+        
+        exitTask.solve { (result) in
+            XCTAssertEqual(result, "Exit")
+            expExit.fulfill()
+        }
+        
+        cTask.solve { (result) in
+            XCTAssertEqual(result, "C")
+            expC.fulfill()
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {
+            XCTAssertEqual(TestResults.shared.executionLog, ["A", "/A", "B", "/B", "C", "/C", "Main", "/Main", "Exit", "/Exit"])
+            expExec.fulfill()
+        })
+        
+        wait(for: [expMain, expExit, expC, expExec], timeout: 3)
+    }
+    
+    
     func testTaskRemoval() {
         let exp = expectation(description: "")
         TestResults.shared.executionLog.removeAll()
         
         MainTask().solve { (result) in
             DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: {
-                XCTAssertEqual(TaskManager.shared.workSteps.isEmpty, true)
+                XCTAssertEqual(WorkCoordinator.shared.workSteps.isEmpty, true)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     exp.fulfill()
                 }
@@ -153,8 +171,9 @@ class WorkerTests: XCTestCase {
         ("testWithPrecessorDependency", testWithPrecessorDependency),
         ("testWithSuccessorDependency", testWithSuccessorDependency),
         ("testWithDependencies", testWithDependencies),
+        ("testWithParentDependencies", testWithParentDependencies),
         ("testExecutionDeduplication", testExecutionDeduplication),
-        ("testMixSuccessorsAndPrecessors", testMixSuccessorsAndPrecessors),
+        ("testWithComplexDependencies", testWithComplexDependencies),
         ("testTaskRemoval", testTaskRemoval),
     ]
 }

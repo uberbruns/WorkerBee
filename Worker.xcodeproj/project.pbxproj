@@ -7,10 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		3DF425E51FDEE1EE00C8BBBC /* TaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF425E01FDEE1ED00C8BBBC /* TaskManager.swift */; };
-		3DF425E61FDEE1EE00C8BBBC /* TaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF425E01FDEE1ED00C8BBBC /* TaskManager.swift */; };
-		3DF425E71FDEE1EE00C8BBBC /* TaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF425E01FDEE1ED00C8BBBC /* TaskManager.swift */; };
-		3DF425E81FDEE1EE00C8BBBC /* TaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF425E01FDEE1ED00C8BBBC /* TaskManager.swift */; };
+		3D6EF2531FE989FC008C7DD5 /* WorkSteps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D6EF2521FE989FC008C7DD5 /* WorkSteps.swift */; };
+		3D6EF2541FE98A81008C7DD5 /* WorkSteps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D6EF2521FE989FC008C7DD5 /* WorkSteps.swift */; };
+		3D6EF2551FE98A82008C7DD5 /* WorkSteps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D6EF2521FE989FC008C7DD5 /* WorkSteps.swift */; };
+		3D6EF2561FE98A83008C7DD5 /* WorkSteps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D6EF2521FE989FC008C7DD5 /* WorkSteps.swift */; };
+		3D6EF2581FE98AF6008C7DD5 /* WorkCoordinator+Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D6EF2571FE98AF6008C7DD5 /* WorkCoordinator+Logging.swift */; };
+		3D6EF2591FE990DA008C7DD5 /* WorkCoordinator+Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D6EF2571FE98AF6008C7DD5 /* WorkCoordinator+Logging.swift */; };
+		3D6EF25A1FE990DB008C7DD5 /* WorkCoordinator+Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D6EF2571FE98AF6008C7DD5 /* WorkCoordinator+Logging.swift */; };
+		3D6EF25B1FE990DB008C7DD5 /* WorkCoordinator+Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D6EF2571FE98AF6008C7DD5 /* WorkCoordinator+Logging.swift */; };
+		3DF425E51FDEE1EE00C8BBBC /* WorkCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF425E01FDEE1ED00C8BBBC /* WorkCoordinator.swift */; };
+		3DF425E61FDEE1EE00C8BBBC /* WorkCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF425E01FDEE1ED00C8BBBC /* WorkCoordinator.swift */; };
+		3DF425E71FDEE1EE00C8BBBC /* WorkCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF425E01FDEE1ED00C8BBBC /* WorkCoordinator.swift */; };
+		3DF425E81FDEE1EE00C8BBBC /* WorkCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF425E01FDEE1ED00C8BBBC /* WorkCoordinator.swift */; };
 		3DF425E91FDEE1EE00C8BBBC /* WorkStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF425E11FDEE1EE00C8BBBC /* WorkStep.swift */; };
 		3DF425EA1FDEE1EE00C8BBBC /* WorkStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF425E11FDEE1EE00C8BBBC /* WorkStep.swift */; };
 		3DF425EB1FDEE1EE00C8BBBC /* WorkStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF425E11FDEE1EE00C8BBBC /* WorkStep.swift */; };
@@ -75,7 +83,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		3DF425E01FDEE1ED00C8BBBC /* TaskManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TaskManager.swift; sourceTree = "<group>"; };
+		3D6EF2521FE989FC008C7DD5 /* WorkSteps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkSteps.swift; sourceTree = "<group>"; };
+		3D6EF2571FE98AF6008C7DD5 /* WorkCoordinator+Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WorkCoordinator+Logging.swift"; sourceTree = "<group>"; };
+		3DF425E01FDEE1ED00C8BBBC /* WorkCoordinator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WorkCoordinator.swift; sourceTree = "<group>"; };
 		3DF425E11FDEE1EE00C8BBBC /* WorkStep.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WorkStep.swift; sourceTree = "<group>"; };
 		3DF425E21FDEE1EE00C8BBBC /* Worker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Worker.swift; sourceTree = "<group>"; };
 		3DF425E31FDEE1EE00C8BBBC /* Dependency.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Dependency.swift; sourceTree = "<group>"; };
@@ -200,10 +210,12 @@
 				3DF425E31FDEE1EE00C8BBBC /* Dependency.swift */,
 				3DF426011FE827B500C8BBBC /* Dependency+Results.swift */,
 				3DF425E41FDEE1EE00C8BBBC /* Task.swift */,
-				3DF425E01FDEE1ED00C8BBBC /* TaskManager.swift */,
+				3DF425E01FDEE1ED00C8BBBC /* WorkCoordinator.swift */,
+				3D6EF2571FE98AF6008C7DD5 /* WorkCoordinator+Logging.swift */,
 				3DF425E21FDEE1EE00C8BBBC /* Worker.swift */,
 				3DF4260B1FE874B700C8BBBC /* Workers.swift */,
 				3DF425E11FDEE1EE00C8BBBC /* WorkStep.swift */,
+				3D6EF2521FE989FC008C7DD5 /* WorkSteps.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -514,14 +526,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3DF425E51FDEE1EE00C8BBBC /* TaskManager.swift in Sources */,
+				3DF425E51FDEE1EE00C8BBBC /* WorkCoordinator.swift in Sources */,
 				3DF425F11FDEE1EE00C8BBBC /* Dependency.swift in Sources */,
 				3DF425ED1FDEE1EE00C8BBBC /* Worker.swift in Sources */,
 				3DF425F51FDEE1EE00C8BBBC /* Task.swift in Sources */,
 				3DF425E91FDEE1EE00C8BBBC /* WorkStep.swift in Sources */,
 				3DF4260C1FE874B700C8BBBC /* Workers.swift in Sources */,
 				3DF426021FE827B500C8BBBC /* Dependency+Results.swift in Sources */,
+				3D6EF2531FE989FC008C7DD5 /* WorkSteps.swift in Sources */,
 				3DF426071FE8428700C8BBBC /* Hashing.swift in Sources */,
+				3D6EF2581FE98AF6008C7DD5 /* WorkCoordinator+Logging.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -538,14 +552,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3DF425E71FDEE1EE00C8BBBC /* TaskManager.swift in Sources */,
+				3DF425E71FDEE1EE00C8BBBC /* WorkCoordinator.swift in Sources */,
 				3DF426041FE8299200C8BBBC /* Dependency+Results.swift in Sources */,
 				3DF425F31FDEE1EE00C8BBBC /* Dependency.swift in Sources */,
 				3DF425EF1FDEE1EE00C8BBBC /* Worker.swift in Sources */,
 				3DF425F71FDEE1EE00C8BBBC /* Task.swift in Sources */,
 				3DF4260E1FE876D800C8BBBC /* Workers.swift in Sources */,
+				3D6EF2551FE98A82008C7DD5 /* WorkSteps.swift in Sources */,
 				3DF425EB1FDEE1EE00C8BBBC /* WorkStep.swift in Sources */,
 				3DF426091FE842F600C8BBBC /* Hashing.swift in Sources */,
+				3D6EF25A1FE990DB008C7DD5 /* WorkCoordinator+Logging.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -553,14 +569,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3DF425E81FDEE1EE00C8BBBC /* TaskManager.swift in Sources */,
+				3DF425E81FDEE1EE00C8BBBC /* WorkCoordinator.swift in Sources */,
 				3DF426051FE8299300C8BBBC /* Dependency+Results.swift in Sources */,
 				3DF425F41FDEE1EE00C8BBBC /* Dependency.swift in Sources */,
 				3DF425F01FDEE1EE00C8BBBC /* Worker.swift in Sources */,
 				3DF425F81FDEE1EE00C8BBBC /* Task.swift in Sources */,
 				3DF4260F1FE876D800C8BBBC /* Workers.swift in Sources */,
+				3D6EF2561FE98A83008C7DD5 /* WorkSteps.swift in Sources */,
 				3DF425EC1FDEE1EE00C8BBBC /* WorkStep.swift in Sources */,
 				3DF4260A1FE842F600C8BBBC /* Hashing.swift in Sources */,
+				3D6EF25B1FE990DB008C7DD5 /* WorkCoordinator+Logging.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -568,14 +586,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3DF425E61FDEE1EE00C8BBBC /* TaskManager.swift in Sources */,
+				3DF425E61FDEE1EE00C8BBBC /* WorkCoordinator.swift in Sources */,
 				3DF426031FE8299200C8BBBC /* Dependency+Results.swift in Sources */,
 				3DF425F21FDEE1EE00C8BBBC /* Dependency.swift in Sources */,
 				3DF425EE1FDEE1EE00C8BBBC /* Worker.swift in Sources */,
 				3DF425F61FDEE1EE00C8BBBC /* Task.swift in Sources */,
 				3DF4260D1FE876D700C8BBBC /* Workers.swift in Sources */,
+				3D6EF2541FE98A81008C7DD5 /* WorkSteps.swift in Sources */,
 				3DF425EA1FDEE1EE00C8BBBC /* WorkStep.swift in Sources */,
 				3DF426081FE842F500C8BBBC /* Hashing.swift in Sources */,
+				3D6EF2591FE990DA008C7DD5 /* WorkCoordinator+Logging.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

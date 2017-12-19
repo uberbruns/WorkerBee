@@ -26,21 +26,24 @@ struct TestTask: Task {
     typealias Result = String
     
     let name: String
-    let precessors: [String]
-    let successors: [String]
     let hashValue: Int
     
-    
-    init(name: String, precessors: [String] = [], successors: [String] = []) {
+    let precessors: [String]
+    let successors: [String]
+    let parents: [String]
+
+    init(name: String, precessors: [String] = [], successors: [String] = [], parents: [String] = []) {
         var hashValue = TestResults.shared.randomInt
         extendHash(&hashValue, with: name)
-        extendHash(&hashValue, with: precessors.joined(separator: "-"))
-        extendHash(&hashValue, with: successors.joined(separator: "-"))
-        
+        extendHash(&hashValue, with: "pr-" + precessors.joined(separator: "-"))
+        extendHash(&hashValue, with: "su-" + successors.joined(separator: "-"))
+        extendHash(&hashValue, with: "pa-" + parents.joined(separator: "-"))
+
         self.hashValue = hashValue
         self.name = name
         self.precessors = precessors
         self.successors = successors
+        self.parents = parents
     }
     
     
@@ -64,6 +67,11 @@ class TestWorker: Worker<TestTask> {
         for successor in task.successors {
             let dependency = TestTask(name: successor)
             self.add(dependency: dependency, as: .successor)
+        }
+
+        for parent in task.parents {
+            let dependency = TestTask(name: parent)
+            self.add(dependency: dependency, as: .parent)
         }
     }
     

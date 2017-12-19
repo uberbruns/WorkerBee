@@ -23,7 +23,7 @@ protocol AnyWorker: class {
     var completionHandler: [CompletionHandler] { get set }
 
     func main(results: Dependency.Results, report: @escaping (Report, Any?) -> Void)
-    func callCompletionHandlers()
+    func invokeCallbacks()
     func cleanUp(report: @escaping (Report) -> Void)
 }
 
@@ -91,7 +91,7 @@ open class Worker<T: Task>: AnyWorker {
     }
     
     
-    func callCompletionHandlers() {
+    func invokeCallbacks() {
         if let result = self.result.obtainedResult {
             completionHandler.forEach { $0.handler(result) }
         }
