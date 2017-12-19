@@ -152,6 +152,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		3DF426101FE9246D00C8BBBC /* InternalLibs */ = {
+			isa = PBXGroup;
+			children = (
+				3DF426061FE8428700C8BBBC /* Hashing.swift */,
+			);
+			path = InternalLibs;
+			sourceTree = "<group>";
+		};
 		52D6D9721BEFF229002C0205 = {
 			isa = PBXGroup;
 			children = (
@@ -188,14 +196,14 @@
 		8933C7811EB5B7E0000D00A4 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				3DF426101FE9246D00C8BBBC /* InternalLibs */,
 				3DF425E31FDEE1EE00C8BBBC /* Dependency.swift */,
 				3DF426011FE827B500C8BBBC /* Dependency+Results.swift */,
 				3DF425E41FDEE1EE00C8BBBC /* Task.swift */,
 				3DF425E01FDEE1ED00C8BBBC /* TaskManager.swift */,
 				3DF425E21FDEE1EE00C8BBBC /* Worker.swift */,
-				3DF425E11FDEE1EE00C8BBBC /* WorkStep.swift */,
-				3DF426061FE8428700C8BBBC /* Hashing.swift */,
 				3DF4260B1FE874B700C8BBBC /* Workers.swift */,
+				3DF425E11FDEE1EE00C8BBBC /* WorkStep.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";

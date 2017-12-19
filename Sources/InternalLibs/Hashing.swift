@@ -9,7 +9,7 @@
 import Foundation
 
 
-public func extendHash<T: Hashable>(_ seed: inout Int, with otherHashable: T) {
+func extendHash<T: Hashable>(_ seed: inout Int, with otherHashable: T) {
     // Swift port of http://www.boost.org/doc/libs/1_34_1/boost/functional/hash/hash.hpp
     #if arch(x86_64) || arch(arm64)
         let magic = Int(bitPattern: 0x9e3779b97f4a7c15 as UInt)
@@ -22,7 +22,7 @@ public func extendHash<T: Hashable>(_ seed: inout Int, with otherHashable: T) {
 }
 
 
-public func buildHash<T: Hashable>(_ items: T...) -> Int {
+func buildHash<T: Hashable>(_ items: T...) -> Int {
     guard items.count > 0 else { return 0 }
     var items = items
     var result = items.removeFirst().hashValue

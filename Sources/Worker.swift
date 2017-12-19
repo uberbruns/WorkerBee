@@ -18,7 +18,6 @@ public enum Report {
 protocol AnyWorker: class {
     var dependencies: Set<Dependency> { get }
     var dependencyState: DependencyState { get set }
-    var anyTask: AnyTask { get }
     var result: TaskResult { get set }
     var completionHandler: [CompletionHandler] { get set }
 
@@ -39,7 +38,6 @@ open class Worker<T: Task>: AnyWorker {
 
     // Internal
     var completionHandler: [CompletionHandler]
-    var anyTask: AnyTask { return task }
     private(set) var dependencies: Set<Dependency>
     var dependencyState: DependencyState
     var result: TaskResult

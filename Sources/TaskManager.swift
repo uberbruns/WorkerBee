@@ -26,7 +26,7 @@ final public class TaskManager {
     private init() { }
     
     
-    // MARK: - Micro Tasks -
+    // MARK: - WorkSteps -
     // MARK: Add
 
     private func addAsWorkSteps(task: AnyTask) {
@@ -36,24 +36,21 @@ final public class TaskManager {
     }
     
     
-    private func addWorkersDependenciesAsWorkSteps(task: AnyTask) {
+    private func addWorkersDependenciesAsWorkSteps(_ worker: AnyWorker) {
         // Resolve dependencies
-        func recursiveAddDependencies(task: AnyTask) {
-            guard let thisWorkStep = workSteps[task: task, phase: .main] else { return }
-            let worker = workers[thisWorkStep]
-            
+        func recursiveAddDependencies(worker: AnyWorker) {
             for dependency in worker.dependencies {
                 addAsWorkSteps(task: dependency.original)
                 let worker = workers[dependency.original]
                 if worker.result.isNone {
-                    recursiveAddDependencies(task: dependency.original)
+                    let depWorker = workers[dependency.original]
+                    recursiveAddDependencies(worker: depWorker)
                 }
             }
             
             worker.dependencyState = .added
         }
-        
-        recursiveAddDependencies(task: task)
+        recursiveAddDependencies(worker: worker)
     }
 
     
@@ -63,21 +60,9 @@ final public class TaskManager {
         var result = [AnyWorker]()
         for (_, workStep) in self.workSteps.steps {
             guard workStep.phase == .main else { continue }
-            let worker = workers[workStep]
-            if workers[workStep].dependencyState == .unresolved {
-                result.append(worker)
-            }
-        }
-        return result
-    }
 
-    
-    private func findAddedWithUnresolvedDependencies() -> [AnyWorker] {
-        var result = [AnyWorker]()
-        for (_, workStep) in self.workSteps.steps {
-            guard workStep.phase == .main else { continue }
             let worker = workers[workStep]
-            if workers[workStep].dependencyState == .added {
+            if worker.dependencyState == .unresolved {
                 result.append(worker)
             }
         }
@@ -142,6 +127,7 @@ final public class TaskManager {
         }
         
         addAsWorkSteps(task: task)
+        
         if let callCompletionHandler = workSteps[task: task, phase: .callCompletionHandler] {
             workers[callCompletionHandler].completionHandler.append(completionHandler)
         }
@@ -168,8 +154,7 @@ final public class TaskManager {
         print("Add Workers Dependencies As WorkSteps ...\n")
 
         for worker in findWorkersWithUnresolvedDependencies() {
-            guard worker.dependencyState == .unresolved else { continue }
-            addWorkersDependenciesAsWorkSteps(task: worker.anyTask)
+            addWorkersDependenciesAsWorkSteps(worker)
         }
         
         // Interlink dependencies
@@ -200,7 +185,7 @@ final public class TaskManager {
         workSteps.debugPrint()
         print("Execute WorkSteps ...\n")
         
-        obtainResults: for thisWorkStep in findWorkStepsToExecute() {
+        executeWorkSteps: for thisWorkStep in findWorkStepsToExecute() {
             let worker = workers[thisWorkStep]
             var results = Dependency.Results()
             
@@ -208,7 +193,7 @@ final public class TaskManager {
             for dependency in thisWorkStep.dependencies {
                 // All dependencies resolved?
                 if dependency.state != .resolved {
-                    continue obtainResults
+                    continue executeWorkSteps
                 }
                 
                 // Fill results
@@ -242,9 +227,17 @@ final public class TaskManager {
                 thisWorkStep.state = .resolved
                 self.setNeedsResolve()
 
-            default:
-                break
-            }
+            case .cleanUp:
+                worker.cleanUp(report: { (report) in
+                    switch report {
+                    case .done:
+                        thisWorkStep.state = .resolved
+                    default:
+                        fatalError("Case not yet implemented")
+                    }
+                    self.setNeedsResolve()
+                    return
+                })
         }
 
         // Remove resolved tasks
