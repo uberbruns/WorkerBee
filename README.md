@@ -47,7 +47,7 @@ The `Worker` is initialized with the `Task` and executes it by using the `main` 
 
 If you want to execute a task it would look like this:
 
-```
+```swift
 WaitTask(duration: 5, context: "ForIt").solve { now in
     print(now)
 }
