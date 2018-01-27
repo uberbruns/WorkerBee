@@ -8,7 +8,7 @@
 
 import Foundation
 import XCTest
-@testable import Worker
+@testable import WorkerBee
 
 class WorkerTests: XCTestCase {
     func testWithNoDependencies() {

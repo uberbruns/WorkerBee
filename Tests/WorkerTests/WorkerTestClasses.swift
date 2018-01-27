@@ -7,7 +7,7 @@
 //
 
 import Foundation
-@testable import Worker
+@testable import WorkerBee
 
 
 class TestResults {
