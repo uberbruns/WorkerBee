@@ -24,7 +24,7 @@ struct WaitTask: Task {
 }
 ```
 
-The goal of this task is just to wait for a specified duration and to return the current time (as `Date`) when the waiting time is over. In this example we also define a context string that is used together with the duration as hash. If two task with the same hashValue are scheduled at the same time only one worker will execute it, but the result will be given to both callers who created the tasks.
+The goal of this task is just to wait for a specified duration and to return the current time (as `Date`) when the waiting time is over. In this example we also define a context string that is used together with the duration as hash. If two tasks with the same hashValue are scheduled at the same time only one worker will execute it, but the result will be given to both callers who created the tasks.
 
 
 ## The Worker
@@ -81,7 +81,7 @@ The results of the preceding tasks are available through the `results` attribute
 
 ## Parent/Child Relationship
 
-A dependency relationship cannot only be `.precessor` or `.successor`, it can also be `.parent`. If some one would define `WaitWorker` as its parent, `WaitWorker`s `cleanUp(...)` function would not be called after the `main(...)` function, but after the child worker completed its work.
+A dependency relationship cannot only be `.precessor` or `.successor`, it can also be `.parent`. If someone would define `WaitWorker` as its parent, `WaitWorker`s `cleanUp(...)` function would not be called directly after the `main(...)` function, but after the child worker completed its work.
 
 
 ```swift
@@ -105,7 +105,7 @@ class WaitWorker: Worker<WaitTask> {
 }
 ```
 
-This is more useful if you for example have a `BluetoothConnection`-task and a `BluetoothMessage`-task. The message task would define the connection as parent, and when it is executed the connection task can build up the connection in its main function, then the message tasks deliver the messages and when finished the clean up function of the connection tasks closes the connection.
+This is  useful for example if you have a `BluetoothConnection`-task and a `BluetoothMessage`-task. The message task would define the connection as parent and when it is executed the connection task could build up the bluetooth connection in its main function, then the message tasks deliver the messages and when finished the clean up function of the connection tasks closes the connection.
 
 
 
